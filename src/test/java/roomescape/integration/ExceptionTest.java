@@ -191,7 +191,7 @@ public class ExceptionTest {
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(400)
-                .body("message", equalTo("요청 본문 형식이 유효하지 않습니다."));
+                .body("message", equalTo("예약 요청 형식이 유효하지 않습니다."));
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
@@ -199,7 +199,7 @@ public class ExceptionTest {
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(400)
-                .body("message", equalTo("요청 본문 형식이 유효하지 않습니다."));
+                .body("message", equalTo("예약 요청 형식이 유효하지 않습니다."));
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
@@ -207,7 +207,7 @@ public class ExceptionTest {
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(400)
-                .body("message", equalTo("요청 본문 형식이 유효하지 않습니다."));
+                .body("message", equalTo("예약 요청 형식이 유효하지 않습니다."));
     }
 
     @DisplayName("예약 시, date에 null이나 날짜 형식 아닌 값이 들어오면 예외가 발생한다.")
@@ -234,7 +234,7 @@ public class ExceptionTest {
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(400)
-                .body("message", equalTo("요청 본문 형식이 유효하지 않습니다."));
+                .body("message", equalTo( "예약 요청 형식이 유효하지 않습니다."));
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
@@ -242,7 +242,7 @@ public class ExceptionTest {
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(400)
-                .body("message", equalTo("요청 본문 형식이 유효하지 않습니다."));
+                .body("message", equalTo( "요청 본문 형식이 유효하지 않습니다."));
     }
 
     @DisplayName("예약 시, timeId, themeId 중 하나라도 null이면 예외가 발생한다.")
@@ -269,7 +269,7 @@ public class ExceptionTest {
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(400)
-                .body("message", equalTo("요청 본문 형식이 유효하지 않습니다."));
+                .body("message", equalTo("예약 요청 형식이 유효하지 않습니다."));
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
@@ -277,7 +277,7 @@ public class ExceptionTest {
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(400)
-                .body("message", equalTo("요청 본문 형식이 유효하지 않습니다."));
+                .body("message", equalTo("예약 요청 형식이 유효하지 않습니다."));
     }
 
     @DisplayName("시간 등록 시, startAt에 null이나 시간 형식 아닌 값이 들어오면 예외가 발생한다.")
@@ -297,7 +297,7 @@ public class ExceptionTest {
                 .when().post("/admin/times")
                 .then().log().all()
                 .statusCode(400)
-                .body("message", equalTo("요청 본문 형식이 유효하지 않습니다."));
+                .body("message", equalTo("예약 시간 요청 형식이 유효하지 않습니다."));
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
@@ -331,7 +331,7 @@ public class ExceptionTest {
                 .when().post("/admin/themes")
                 .then().log().all()
                 .statusCode(400)
-                .body("message", equalTo("요청 본문 형식이 유효하지 않습니다."));
+                .body("message", equalTo("테마 요청 형식이 유효하지 않습니다."));
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
@@ -339,9 +339,8 @@ public class ExceptionTest {
                 .when().post("/admin/themes")
                 .then().log().all()
                 .statusCode(400)
-                .body("message", equalTo("요청 본문 형식이 유효하지 않습니다."));
+                .body("message", equalTo("테마 요청 형식이 유효하지 않습니다."));
     }
-
 
     @DisplayName("테마 등록 시, description, thumbnailUrl 중 하나라도 null이면 예외가 발생한다.")
     @Test
@@ -367,7 +366,7 @@ public class ExceptionTest {
                 .when().post("/admin/themes")
                 .then().log().all()
                 .statusCode(400)
-                .body("message", equalTo("요청 본문 형식이 유효하지 않습니다."));
+                .body("message", equalTo("테마 요청 형식이 유효하지 않습니다."));
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
@@ -375,6 +374,6 @@ public class ExceptionTest {
                 .when().post("/admin/themes")
                 .then().log().all()
                 .statusCode(400)
-                .body("message", equalTo("요청 본문 형식이 유효하지 않습니다."));
+                .body("message", equalTo("테마 요청 형식이 유효하지 않습니다."));
     }
 }

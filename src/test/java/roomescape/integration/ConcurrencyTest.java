@@ -20,6 +20,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import roomescape.global.exception.BusinessException;
 import roomescape.integration.support.DatabaseHelper;
 import roomescape.integration.support.SpringWebTest;
+import roomescape.member.exception.DuplicateMemberException;
+import roomescape.member.service.MemberCommand;
+import roomescape.member.service.MemberService;
 import roomescape.reservation.exception.DuplicateReservationException;
 import roomescape.reservation.exception.ReservationNotFoundException;
 import roomescape.reservation.service.ReservationService;
@@ -47,7 +50,10 @@ class ConcurrencyTest {
     ReservationTimeService reservationTimeService;
 
     @Autowired
-    private ThemeService themeService;
+    ThemeService themeService;
+
+    @Autowired
+    MemberService memberService;
 
     @BeforeEach
     void setup() {
@@ -261,21 +267,22 @@ class ConcurrencyTest {
                 .then().statusCode(201);
     }
 
-    private Long createReservation(String name, LocalDate date, Long timeId, Long themeId) {
+    private long createReservation(String name, LocalDate date, Long timeId, Long themeId) {
         Map<String, Object> reservation = new HashMap<>();
         reservation.put("name", name);
         reservation.put("date", date.toString());
         reservation.put("timeId", timeId);
         reservation.put("themeId", themeId);
 
-        return RestAssured.given()
+        String location = RestAssured.given()
                 .contentType(ContentType.JSON)
                 .body(reservation)
                 .when().post("/reservations")
                 .then().statusCode(201)
                 .extract()
-                .jsonPath()
-                .getLong("id");
+                .header("Location");
+
+        return Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
     }
 
     private List<Integer> runConcurrentlyAndCountResults(
@@ -316,5 +323,51 @@ class ConcurrencyTest {
                 duplicateCount.get(),
                 unexpectedErrorCount.get()
         );
+    }
+
+    @DisplayName("동일한 이메일의 회원을 동시에 가입하면 하나만 성공하고 나머지는 중복 예외가 발생한다")
+    @Test
+    void registerMember_concurrent() throws InterruptedException {
+        //when
+        int numberOfThread = 100;
+
+        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThread);
+
+        CountDownLatch latch = new CountDownLatch(numberOfThread);
+
+        AtomicInteger successCount = new AtomicInteger();
+        AtomicInteger duplicateCount = new AtomicInteger();
+        AtomicInteger unexpectedErrorCount = new AtomicInteger();
+
+        for (int i = 0; i < numberOfThread; i++) {
+            executorService.submit(() -> {
+                try {
+                    memberService.signUp(new MemberCommand("이름", "example@gmail.com", "password"));
+                    successCount.incrementAndGet();
+                } catch (Throwable throwable) {
+                    if (throwable instanceof DuplicateMemberException) {
+                        duplicateCount.incrementAndGet();
+                    } else {
+                        unexpectedErrorCount.incrementAndGet();
+                    }
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+        executorService.shutdown();
+
+        List<Integer> result = List.of(
+                successCount.get(),
+                duplicateCount.get(),
+                unexpectedErrorCount.get()
+        );
+
+        //then
+        assertThat(result.get(0)).isEqualTo(1);
+        assertThat(result.get(1)).isEqualTo(99);
+        assertThat(result.get(2)).isEqualTo(0);
     }
 }

@@ -31,13 +31,13 @@ public class ReservationController {
     }
 
     @PostMapping
-    public ResponseEntity<ReservationResponse> createReservation(@RequestBody ReservationRequest requestDto) {
+    public ResponseEntity<Void> createReservation(@RequestBody ReservationRequest requestDto) {
         Reservation reservation = reservationService.makeReservation(requestDto.toCommand());
         ReservationResponse response = ReservationResponse.from(reservation);
 
         return ResponseEntity
                 .created(URI.create("/reservations/" + response.id()))
-                .body(response);
+                .build();
     }
 
 
