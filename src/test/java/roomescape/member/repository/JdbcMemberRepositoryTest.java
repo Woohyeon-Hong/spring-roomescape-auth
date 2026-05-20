@@ -31,10 +31,10 @@ class JdbcMemberRepositoryTest {
         Member saved = memberRepository.save(member);
 
         //then
-        assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getName()).isEqualTo(member.getName());
-        assertThat(saved.getEmail()).isEqualTo(member.getEmail());
-        assertThat(saved.getPasswordHash()).isEqualTo(member.getPasswordHash());
+        assertThat(saved.id()).isNotNull();
+        assertThat(saved.name()).isEqualTo(member.name());
+        assertThat(saved.email()).isEqualTo(member.email());
+        assertThat(saved.passwordHash()).isEqualTo(member.passwordHash());
     }
 
     @Test
@@ -44,7 +44,8 @@ class JdbcMemberRepositoryTest {
         memberRepository.save(Member.of("회원1", "example@gmail.com", "passwordHash"));
 
         // when & then
-        assertThatThrownBy(() ->memberRepository.save(Member.of("otherName", "example@gmail.com", "passwordHashPOther")))
+        assertThatThrownBy(
+                () -> memberRepository.save(Member.of("otherName", "example@gmail.com", "passwordHashPOther")))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -77,10 +78,10 @@ class JdbcMemberRepositoryTest {
         Member saved = memberRepository.save(Member.of("회원1", "example@gmail.com", "passwordHash"));
 
         // when
-        int deletedCount = memberRepository.deleteByEmail(saved.getEmail());
+        int deletedCount = memberRepository.deleteByEmail(saved.email());
 
         // then
-        assertThat(memberRepository.findByEmail(saved.getEmail())).isEmpty();
+        assertThat(memberRepository.findByEmail(saved.email())).isEmpty();
         assertThat(deletedCount).isEqualTo(1);
     }
 }

@@ -5,13 +5,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import roomescape.auth.exception.ForbiddenException;
+import roomescape.auth.exception.LoginFailureException;
 import roomescape.global.exception.BusinessException;
 import roomescape.global.exception.DeleteFailedException;
 import roomescape.global.exception.DuplicateException;
 import roomescape.global.exception.InvalidRequestValueException;
 import roomescape.global.exception.NotFoundException;
 import roomescape.global.exception.response.ErrorResponse;
-import roomescape.reservation.exception.ForbiddenException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -47,6 +48,9 @@ public class GlobalExceptionHandler {
         }
         if (e instanceof ForbiddenException) {
             status = HttpStatus.FORBIDDEN;
+        }
+        if (e instanceof LoginFailureException) {
+            status = HttpStatus.UNAUTHORIZED;
         }
 
         return ResponseEntity

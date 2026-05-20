@@ -1,6 +1,4 @@
-package roomescape.member.exception;
-
-import roomescape.global.exception.InvalidRequestFormatException;
+package roomescape.global.exception;
 
 public class InvalidEmailFormatException extends InvalidRequestFormatException {
 

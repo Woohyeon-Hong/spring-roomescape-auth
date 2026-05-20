@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,9 +40,9 @@ class MemberServiceTest {
         Member saved = memberService.signUp(command);
 
         // then
-        assertThat(saved.getPasswordHash()).isNotEqualTo("plain-password");
-        assertThat(BCrypt.checkpw("plain-password", saved.getPasswordHash())).isTrue();
-   }
+        assertThat(saved.passwordHash()).isNotEqualTo("plain-password");
+        assertThat(BCrypt.checkpw("plain-password", saved.passwordHash())).isTrue();
+    }
 
     @DisplayName("회원 가입 시, 기존에 이미 동일한 이메일로 회원가입이 돼 있으면 예외가 발생한다.")
     @Test
@@ -54,5 +55,17 @@ class MemberServiceTest {
         assertThatThrownBy(() -> memberService.signUp(
                 new MemberCommand("이름", "example@gmail.com", "password")
         )).isInstanceOf(DuplicateMemberException.class);
+    }
+
+    @DisplayName("email을 기반으로 회원을 조회한다.")
+    @Test
+    void getByEmailTest() {
+        //given
+        when(memberRepository.findByEmail("example@gmail.com"))
+                .thenReturn(Optional.of(new Member(1L, "브라운", "example@gmail.com", "passwordHash")));
+
+        //when & then
+        assertThat(memberService.getByEmail("example@gmail.com").email())
+                .isEqualTo("example@gmail.com");
     }
 }

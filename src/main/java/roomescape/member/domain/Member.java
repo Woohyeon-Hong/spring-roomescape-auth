@@ -1,22 +1,14 @@
 package roomescape.member.domain;
 
 import java.util.Objects;
+import org.mindrot.jbcrypt.BCrypt;
 import roomescape.member.exception.InvalidMemberRequestFormatException;
 
-public class Member {
+public record Member(Long id, String name, String email, String passwordHash) {
 
-    private final Long id;
-    private final String name;
-    private final String email;
-    private final String passwordHash;
-
-    public Member(Long id, String name, String email, String passwordHash) {
+    public Member {
         validate(name, email, passwordHash);
 
-        this.id = id;
-        this.name = name;
-        this.email = email;
-        this.passwordHash = passwordHash;
     }
 
     public static Member of(String name, String email, String passwordHash) {
@@ -26,9 +18,9 @@ public class Member {
     public Member updateId(Long id) {
         return new Member(
                 id,
-                this.getName(),
-                this.getEmail(),
-                this.getPasswordHash()
+                this.name(),
+                this.email(),
+                this.passwordHash()
         );
     }
 
@@ -38,32 +30,20 @@ public class Member {
         }
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof Member member)) {
             return false;
         }
-        return Objects.equals(getId(), member.getId());
+        return Objects.equals(id(), member.id());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(getId());
+        return Objects.hashCode(id());
+    }
+
+    public boolean checkPasswordWith(String password) {
+        return BCrypt.checkpw(password, this.passwordHash);
     }
 }

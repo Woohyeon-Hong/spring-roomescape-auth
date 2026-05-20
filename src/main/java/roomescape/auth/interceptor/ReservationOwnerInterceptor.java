@@ -1,4 +1,4 @@
-package roomescape.reservation.auth;
+package roomescape.auth.interceptor;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -7,9 +7,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.HandlerMapping;
+import roomescape.auth.annotation.Authorized;
 import roomescape.reservation.domain.Reservation;
-import roomescape.reservation.exception.ForbiddenException;
-import roomescape.reservation.exception.MissingAuthorizationHeaderException;
+import roomescape.auth.exception.ForbiddenException;
+import roomescape.auth.exception.MissingAuthorizationHeaderException;
 import roomescape.reservation.exception.ReservationNotFoundException;
 import roomescape.reservation.repository.ReservationRepository;
 

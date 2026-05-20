@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 import roomescape.member.domain.Member;
 
 @Repository
-public class JdbcMemberRepository implements MemberRepository{
+public class JdbcMemberRepository implements MemberRepository {
 
     private static final RowMapper<Member> MEMBER_ROW_MAPPER = (resultSet, rowNum) ->
             new Member(
@@ -30,17 +30,17 @@ public class JdbcMemberRepository implements MemberRepository{
     @Override
     public Member save(Member member) {
         String sql = """
-               INSERT INTO member (name, email, password_hash)
-               VALUES (?, ?, ?)
-               """;
+                INSERT INTO member (name, email, password_hash)
+                VALUES (?, ?, ?)
+                """;
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id"});
-            ps.setString(1, member.getName());
-            ps.setString(2, member.getEmail());
-            ps.setString(3, member.getPasswordHash());
+            ps.setString(1, member.name());
+            ps.setString(2, member.email());
+            ps.setString(3, member.passwordHash());
             return ps;
         }, keyHolder);
 
@@ -52,10 +52,10 @@ public class JdbcMemberRepository implements MemberRepository{
     @Override
     public Optional<Member> findByEmail(String email) {
         String sql = """
-               SELECT id, name, email, password_hash
-               FROM member
-               WHERE email = ?
-               """;
+                SELECT id, name, email, password_hash
+                FROM member
+                WHERE email = ?
+                """;
 
         return jdbcTemplate.query(
                 sql,
@@ -67,12 +67,12 @@ public class JdbcMemberRepository implements MemberRepository{
     @Override
     public boolean existByEmail(String email) {
         String sql = """
-            SELECT EXISTS (
-                SELECT 1
-                FROM member
-                WHERE email = ?
-            )
-            """;
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM member
+                    WHERE email = ?
+                )
+                """;
 
         Boolean exists = jdbcTemplate.queryForObject(sql, Boolean.class, email);
         return Boolean.TRUE.equals(exists);
@@ -82,9 +82,9 @@ public class JdbcMemberRepository implements MemberRepository{
     @Override
     public int deleteByEmail(String email) {
         String sql = """
-               DELETE FROM member
-               WHERE email = ?
-               """;
+                DELETE FROM member
+                WHERE email = ?
+                """;
 
         return jdbcTemplate.update(sql, email);
     }
