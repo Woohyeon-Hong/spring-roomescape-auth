@@ -1,8 +1,8 @@
 package roomescape.auth.service;
 
 import org.springframework.stereotype.Service;
+import roomescape.auth.JwtProvider;
 import roomescape.auth.exception.LoginFailureException;
-import roomescape.auth.jwt.JwtProvider;
 import roomescape.auth.service.dto.LoginCommand;
 import roomescape.auth.service.dto.LoginResult;
 import roomescape.member.domain.Member;
@@ -28,7 +28,7 @@ public class AuthService {
             throw new LoginFailureException();
         }
 
-        String token = jwtProvider.createToken(member.id());
+        String token = jwtProvider.createAccessToken(member.id());
         Long expiresIn = jwtProvider.calculateExpiresIn(token);
 
         return new LoginResult(

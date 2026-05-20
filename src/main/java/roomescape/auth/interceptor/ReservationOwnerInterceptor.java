@@ -8,9 +8,9 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.HandlerMapping;
 import roomescape.auth.annotation.Authorized;
-import roomescape.reservation.domain.Reservation;
-import roomescape.auth.exception.ForbiddenException;
+import roomescape.auth.exception.AuthorizationException;
 import roomescape.auth.exception.MissingAuthorizationHeaderException;
+import roomescape.reservation.domain.Reservation;
 import roomescape.reservation.exception.ReservationNotFoundException;
 import roomescape.reservation.repository.ReservationRepository;
 
@@ -64,7 +64,7 @@ public class ReservationOwnerInterceptor implements HandlerInterceptor {
                 .orElseThrow(ReservationNotFoundException::new);
 
         if (!reservation.hasSameName(name)) {
-            throw new ForbiddenException();
+            throw new AuthorizationException();
         }
     }
 }
