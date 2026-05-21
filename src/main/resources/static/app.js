@@ -1,4 +1,5 @@
 const $ = (selector) => document.querySelector(selector);
+const AUTH_STORAGE_KEY = "roomescapeAuth";
 
 const state = {
   themes: [],
@@ -23,11 +24,87 @@ async function api(path, options = {}) {
   }
 
   if (response.status === 204) return null;
-  return response.json();
+  const text = await response.text();
+  if (!text) return null;
+  return JSON.parse(text);
 }
 
 function setMessage(message) {
   $("#message").textContent = message;
+}
+
+function getAuth() {
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    return null;
+  }
+}
+
+function setAuth(auth) {
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
+  renderAuthStatus();
+}
+
+function clearAuth() {
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  renderAuthStatus();
+}
+
+function buildAuthHeader() {
+  const auth = getAuth();
+  const accessToken = auth?.accessToken?.trim();
+  if (!accessToken) {
+    throw new Error("로그인이 필요합니다.");
+  }
+  return `Bearer ${accessToken}`;
+}
+
+function getMemberIdFromToken() {
+  const auth = getAuth();
+  if (!auth?.accessToken) {
+    throw new Error("로그인이 필요합니다.");
+  }
+
+  const tokenParts = auth.accessToken.split(".");
+  if (tokenParts.length < 2) {
+    throw new Error("유효하지 않은 토큰입니다.");
+  }
+
+  try {
+    const base64Url = tokenParts[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const payload = JSON.parse(atob(padded));
+    const memberId = Number(payload.sub);
+    if (!Number.isInteger(memberId)) {
+      throw new Error("유효하지 않은 토큰입니다.");
+    }
+    return memberId;
+  } catch {
+    throw new Error("유효하지 않은 토큰입니다.");
+  }
+}
+
+function renderAuthStatus() {
+  const auth = getAuth();
+  if (!auth?.accessToken) {
+    $("#authStatus").textContent = "로그인이 필요합니다.";
+    return;
+  }
+  $("#authStatus").textContent = `${auth.email} 계정으로 로그인됨`;
+}
+
+async function authApi(path, options = {}) {
+  const authHeader = buildAuthHeader();
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: authHeader
+  };
+  return api(path, { ...options, headers });
 }
 
 function renderThemeOptions() {
@@ -74,7 +151,7 @@ function renderReservations(reservations) {
     const row = document.createElement("div");
     row.className = "reservation-row";
     row.innerHTML = `
-      <span class="reservation-text">${reservation.id}. [${reservation.theme?.name ?? "테마 없음"}] ${reservation.date} ${reservation.time.startAt} - ${reservation.name}</span>
+      <span class="reservation-text">${reservation.id}. [${reservation.theme?.name ?? "테마 없음"}] ${reservation.date} ${reservation.time.startAt} - ${reservation.member?.name ?? "회원"}</span>
       <div class="reservation-actions">
         <button class="ghost reservation-update" data-id="${reservation.id}" data-theme-id="${reservation.theme?.id ?? ""}" type="button">변경</button>
         <button class="danger reservation-delete" data-id="${reservation.id}" type="button">삭제</button>
@@ -87,6 +164,12 @@ function renderReservations(reservations) {
 function renderPopularThemes(popularThemes) {
   const list = $("#popularThemes");
   list.innerHTML = "";
+  if (!popularThemes.length) {
+    const li = document.createElement("li");
+    li.textContent = "최근 1주 예약 데이터가 없습니다.";
+    list.appendChild(li);
+    return;
+  }
 
   popularThemes.forEach((theme) => {
     const li = document.createElement("li");
@@ -101,13 +184,7 @@ async function loadThemes() {
 }
 
 async function loadReservations() {
-  const name = $("#lookupName").value.trim();
-  if (!name) {
-    renderReservations([]);
-    return;
-  }
-
-  const reservations = await api(`/reservations?name=${encodeURIComponent(name)}`);
+  const reservations = await authApi("/members/me/reservations");
   renderReservations(reservations);
 }
 
@@ -139,13 +216,6 @@ $("#loadTimes").addEventListener("click", async () => {
 });
 
 $("#loadReservations").addEventListener("click", async () => {
-  const name = $("#lookupName").value.trim();
-  if (!name) {
-    setMessage("예약자 이름을 입력해 주세요.");
-    renderReservations([]);
-    return;
-  }
-
   try {
     await loadReservations();
     setMessage("예약 내역을 조회했습니다.");
@@ -158,20 +228,20 @@ $("#availableTimes").addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-time-id]");
   if (!button) return;
 
-  const name = $("#createName").value.trim();
   const date = $("#createDate").value;
   const themeId = $("#createThemeId").value;
 
-  if (!name || !date || !themeId) {
-    setMessage("예약자 이름, 날짜, 테마를 모두 입력해 주세요.");
+  if (!date || !themeId) {
+    setMessage("날짜와 테마를 모두 입력해 주세요.");
     return;
   }
 
   try {
-    const created = await api("/reservations", {
+    const memberId = getMemberIdFromToken();
+    await authApi("/members/me/reservations", {
       method: "POST",
       body: JSON.stringify({
-        name,
+        memberId,
         date,
         timeId: Number(button.dataset.timeId),
         themeId: Number(themeId)
@@ -180,10 +250,8 @@ $("#availableTimes").addEventListener("click", async (event) => {
 
     await loadAvailableTimes();
     await loadPopularThemes();
-    $("#lookupName").value = name;
     await loadReservations();
-    $("#reservationSuccess").textContent =
-      `예약 성공: #${created.id} / [${created.theme?.name ?? "선택 테마"}] ${created.date} ${created.time.startAt} / ${created.name}`;
+    $("#reservationSuccess").textContent = "예약 성공: 예약이 정상적으로 생성되었습니다.";
     setMessage("예약이 정상적으로 완료되었습니다.");
   } catch (error) {
     setMessage(error.message);
@@ -215,6 +283,7 @@ $("#reservations").addEventListener("click", async (event) => {
 
 async function init() {
   try {
+    renderAuthStatus();
     await loadThemes();
     await loadPopularThemes();
     setMessage("초기 데이터 로딩 완료");

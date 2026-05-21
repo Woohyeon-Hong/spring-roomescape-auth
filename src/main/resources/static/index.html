@@ -19,9 +19,17 @@
     </header>
 
     <section class="panel">
+      <h2>0) 회원/인증</h2>
+      <div class="chips">
+        <a class="admin-link" href="/signup.html">회원가입 페이지로 이동</a>
+        <a class="admin-link" href="/login.html">로그인 페이지로 이동</a>
+      </div>
+      <p id="authStatus">로그인이 필요합니다.</p>
+    </section>
+
+    <section class="panel">
       <h2>1) 예약 생성</h2>
       <form class="grid-form" id="reservationCreateForm">
-        <input id="createName" maxlength="10" name="createName" placeholder="예약자 이름" required />
         <input id="createDate" name="createDate" required type="date" />
         <select id="createThemeId" name="createThemeId" required>
           <option value="">테마 선택</option>
@@ -35,7 +43,6 @@
     <section class="panel">
       <h2>2) 내 예약 조회</h2>
       <form class="grid-form" id="reservationLookupForm">
-        <input id="lookupName" maxlength="10" name="lookupName" placeholder="예약자 이름" required />
         <button id="loadReservations" type="button">내 예약 조회</button>
       </form>
       <div class="list" id="reservations"></div>
@@ -49,6 +56,6 @@
 
     <p class="message" id="message"></p>
   </main>
-  <script src="/app.js"></script>
+  <script src="/app.js?v=20260521-1"></script>
 </body>
 </html>

@@ -22,6 +22,7 @@ import roomescape.reservation.domain.Reservation;
 import roomescape.reservation.service.ReservationService;
 
 @RestController
+@RequireAuth
 @RequestMapping("/members/me/reservations")
 public class MyReservationController {
 
@@ -31,7 +32,6 @@ public class MyReservationController {
         this.reservationService = reservationService;
     }
 
-    @RequireAuth
     @PostMapping
     public ResponseEntity<Void> createReservation(@RequestBody ReservationRequest requestDto) {
         Reservation reservation = reservationService.makeReservation(requestDto.toCommand());

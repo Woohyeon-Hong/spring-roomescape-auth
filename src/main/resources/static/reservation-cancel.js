@@ -2,6 +2,7 @@ const $ = (selector) => document.querySelector(selector);
 
 const query = new URLSearchParams(window.location.search);
 const reservationId = query.get("id");
+const AUTH_STORAGE_KEY = "roomescapeAuth";
 
 function setMessage(message) {
   $("#message").textContent = message;
@@ -28,6 +29,26 @@ async function api(path, options = {}) {
   return response.json();
 }
 
+function getAuthHeader() {
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!raw) {
+    throw new Error("로그인이 필요합니다.");
+  }
+  const auth = JSON.parse(raw);
+  if (!auth?.accessToken) {
+    throw new Error("로그인이 필요합니다.");
+  }
+  return `${auth.tokenType || "Bearer"} ${auth.accessToken}`;
+}
+
+async function authApi(path, options = {}) {
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: getAuthHeader()
+  };
+  return api(path, { ...options, headers });
+}
+
 function initPage() {
   if (!reservationId) {
     $("#cancelReservation").disabled = true;
@@ -37,7 +58,14 @@ function initPage() {
   }
 
   $("#reservationInfo").textContent = `예약 번호 #${reservationId} 를 취소합니다.`;
-  return true;
+  try {
+    getAuthHeader();
+    return true;
+  } catch (error) {
+    $("#cancelReservation").disabled = true;
+    setMessage(error.message);
+    return false;
+  }
 }
 
 $("#cancelForm").addEventListener("submit", async (event) => {
@@ -45,16 +73,9 @@ $("#cancelForm").addEventListener("submit", async (event) => {
 
   if (!reservationId) return;
 
-  const authName = $("#authName").value.trim();
-  if (!authName) {
-    setMessage("인증용 이름을 입력해 주세요.");
-    return;
-  }
-
   try {
-    await api(`/reservations/${reservationId}`, {
+    await authApi(`/members/me/reservations/${reservationId}`, {
       method: "DELETE",
-      headers: { Authorization: authName }
     });
     setMessage("예약이 취소되었습니다. 잠시 후 사용자 페이지로 이동합니다.");
     setTimeout(() => {

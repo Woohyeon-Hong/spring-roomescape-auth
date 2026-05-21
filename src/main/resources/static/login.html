@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-  <title>내 예약 변경 - Roomescape</title>
+  <title>로그인 - Roomescape</title>
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -13,24 +13,27 @@
 <main class="page">
   <header class="hero">
     <p class="eyebrow">ROOMESCAPE</p>
-    <h1>내 예약 변경</h1>
-    <p>로그인 상태에서 변경할 날짜와 시간을 선택해 예약을 변경해 주세요.</p>
+    <h1>로그인</h1>
+    <p>이메일과 비밀번호로 로그인하세요.</p>
     <p><a class="admin-link" href="/index.html">사용자 예약 페이지로 돌아가기</a></p>
   </header>
 
   <section class="panel">
-    <h2>예약 변경</h2>
-    <p id="reservationInfo">변경할 예약 정보를 확인 중입니다.</p>
-    <form class="grid-form" id="updateForm">
-      <input id="updateDate" name="updateDate" required type="date" />
-      <button id="loadTimes" type="button">변경 가능 시간 조회</button>
+    <h2>로그인</h2>
+    <form class="grid-form" id="loginForm">
+      <input id="email" name="email" placeholder="이메일" required type="email" />
+      <input id="password" name="password" placeholder="비밀번호" required type="password" />
+      <button type="submit">로그인</button>
     </form>
-    <div class="chips" id="availableTimes"></div>
-    <button class="danger" id="submitUpdate" type="button">최종 변경</button>
+    <div class="chips">
+      <button class="ghost" id="logoutButton" type="button">로그아웃</button>
+      <button class="danger" id="deleteMemberButton" type="button">회원 탈퇴</button>
+    </div>
+    <p id="authStatus">로그인이 필요합니다.</p>
   </section>
 
   <p class="message" id="message"></p>
 </main>
-<script src="/reservation-update.js"></script>
+<script src="/login.js?v=20260521-1"></script>
 </body>
 </html>

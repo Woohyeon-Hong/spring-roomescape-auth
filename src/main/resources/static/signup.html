@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-  <title>내 예약 변경 - Roomescape</title>
+  <title>회원가입 - Roomescape</title>
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -13,24 +13,23 @@
 <main class="page">
   <header class="hero">
     <p class="eyebrow">ROOMESCAPE</p>
-    <h1>내 예약 변경</h1>
-    <p>로그인 상태에서 변경할 날짜와 시간을 선택해 예약을 변경해 주세요.</p>
+    <h1>회원가입</h1>
+    <p>이름, 이메일, 비밀번호를 입력해 계정을 생성하세요.</p>
     <p><a class="admin-link" href="/index.html">사용자 예약 페이지로 돌아가기</a></p>
   </header>
 
   <section class="panel">
-    <h2>예약 변경</h2>
-    <p id="reservationInfo">변경할 예약 정보를 확인 중입니다.</p>
-    <form class="grid-form" id="updateForm">
-      <input id="updateDate" name="updateDate" required type="date" />
-      <button id="loadTimes" type="button">변경 가능 시간 조회</button>
+    <h2>회원 정보 입력</h2>
+    <form class="grid-form" id="signupForm">
+      <input id="name" maxlength="20" name="name" placeholder="회원 이름" required />
+      <input id="email" name="email" placeholder="이메일" required type="email" />
+      <input id="rawPassword" name="rawPassword" placeholder="비밀번호" required type="password" />
+      <button type="submit">회원가입</button>
     </form>
-    <div class="chips" id="availableTimes"></div>
-    <button class="danger" id="submitUpdate" type="button">최종 변경</button>
   </section>
 
   <p class="message" id="message"></p>
 </main>
-<script src="/reservation-update.js"></script>
+<script src="/signup.js"></script>
 </body>
 </html>

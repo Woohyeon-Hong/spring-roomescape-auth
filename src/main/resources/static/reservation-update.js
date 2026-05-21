@@ -4,6 +4,7 @@ const query = new URLSearchParams(window.location.search);
 const reservationId = query.get("id");
 const themeId = query.get("themeId");
 let selectedTimeId = null;
+const AUTH_STORAGE_KEY = "roomescapeAuth";
 
 function setMessage(message) {
   $("#message").textContent = message;
@@ -28,6 +29,26 @@ async function api(path, options = {}) {
 
   if (response.status === 204) return null;
   return response.json();
+}
+
+function getAuthHeader() {
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!raw) {
+    throw new Error("로그인이 필요합니다.");
+  }
+  const auth = JSON.parse(raw);
+  if (!auth?.accessToken) {
+    throw new Error("로그인이 필요합니다.");
+  }
+  return `${auth.tokenType || "Bearer"} ${auth.accessToken}`;
+}
+
+async function authApi(path, options = {}) {
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: getAuthHeader()
+  };
+  return api(path, { ...options, headers });
 }
 
 function renderAvailableTimes(times) {
@@ -75,7 +96,15 @@ function initPage() {
   }
 
   $("#reservationInfo").textContent = `예약 번호 #${reservationId} 변경 화면입니다.`;
-  return true;
+  try {
+    getAuthHeader();
+    return true;
+  } catch (error) {
+    $("#submitUpdate").disabled = true;
+    $("#loadTimes").disabled = true;
+    setMessage(error.message);
+    return false;
+  }
 }
 
 $("#loadTimes").addEventListener("click", async () => {
@@ -100,12 +129,7 @@ $("#availableTimes").addEventListener("click", (event) => {
 $("#submitUpdate").addEventListener("click", async () => {
   if (!reservationId) return;
 
-  const authName = $("#authName").value.trim();
   const date = $("#updateDate").value;
-  if (!authName) {
-    setMessage("인증용 이름을 입력해 주세요.");
-    return;
-  }
   if (!date) {
     setMessage("변경할 날짜를 입력해 주세요.");
     return;
@@ -116,9 +140,8 @@ $("#submitUpdate").addEventListener("click", async () => {
   }
 
   try {
-    await api(`/reservations/${reservationId}`, {
+    await authApi(`/members/me/reservations/${reservationId}`, {
       method: "PATCH",
-      headers: { Authorization: authName },
       body: JSON.stringify({
         date,
         timeId: selectedTimeId
