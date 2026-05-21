@@ -33,8 +33,11 @@ public class MyReservationController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> createReservation(@RequestBody ReservationRequest requestDto) {
-        Reservation reservation = reservationService.makeReservation(requestDto.toCommand());
+    public ResponseEntity<Void> createReservation(
+            @RequestBody ReservationRequest requestDto,
+            @LoginMember Member loginMember
+    ) {
+        Reservation reservation = reservationService.makeReservation(requestDto.toCommand(loginMember.getId()));
         ReservationResponse response = ReservationResponse.from(reservation);
 
         return ResponseEntity
