@@ -37,7 +37,19 @@ public class MemberService {
     }
 
     public Member getByEmail(String email) {
-        return memberRepository.findByEmail(email)
-                .orElseThrow(MemberNotFoundException::new);
+        return memberRepository.getByEmail(email);
+    }
+
+    public void signOut(Long id) {
+        if (!memberRepository.existById(id)) {
+            throw new MemberNotFoundException();
+        }
+
+        int affectedRow = memberRepository.deleteById(id);
+        int nonAffected = 0;
+
+        if (affectedRow == nonAffected) {
+            throw new MemberNotFoundException();
+        }
     }
 }

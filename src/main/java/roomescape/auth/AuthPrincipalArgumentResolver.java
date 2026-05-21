@@ -9,6 +9,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import roomescape.auth.annotation.LoginMember;
 import roomescape.auth.exception.MissingAuthorizationHeaderException;
+import roomescape.member.domain.Member;
 import roomescape.member.repository.MemberRepository;
 
 public class AuthPrincipalArgumentResolver implements HandlerMethodArgumentResolver {
@@ -24,9 +25,9 @@ public class AuthPrincipalArgumentResolver implements HandlerMethodArgumentResol
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
         boolean hasAnnotation = parameter.hasParameterAnnotation(LoginMember.class);
-        boolean isAuthPrincipalType = AuthPrincipal.class.isAssignableFrom(parameter.getParameterType());
+        boolean isMemberType = Member.class.isAssignableFrom(parameter.getParameterType());
 
-        return hasAnnotation && isAuthPrincipalType;
+        return hasAnnotation && isMemberType;
     }
 
     @Nullable

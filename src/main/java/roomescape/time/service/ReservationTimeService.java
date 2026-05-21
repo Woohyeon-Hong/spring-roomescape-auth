@@ -23,7 +23,8 @@ public class ReservationTimeService {
     private final ThemeRepository themeRepository;
     private final Clock clock;
 
-    public ReservationTimeService(ReservationTimeRepository reservationTimeRepository, ThemeRepository themeRepository, Clock clock) {
+    public ReservationTimeService(ReservationTimeRepository reservationTimeRepository, ThemeRepository themeRepository,
+                                  Clock clock) {
         this.reservationTimeRepository = reservationTimeRepository;
         this.themeRepository = themeRepository;
         this.clock = clock;
@@ -76,6 +77,5 @@ public class ReservationTimeService {
         } catch (DataIntegrityViolationException e) {
             throw new TimeInUseException();
         }
-
     }
 }

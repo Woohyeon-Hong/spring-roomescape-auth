@@ -53,9 +53,13 @@ class JdbcMemberRepositoryTest {
         //given
         memberRepository.save(Member.of("브라운", "example@gmail.com", "passwordHash"));
 
+        //when
+        Member foud = memberRepository.getByEmail("example@gmail.com");
+
         //when & then
-        assertThat(memberRepository.findByEmail("example@gmail.com")).isPresent();
-        assertThat(memberRepository.findByEmail("other@gmail.com")).isEmpty();
+        assertThat(foud.getName()).isEqualTo("브라운");
+        assertThat(foud.getEmail()).isEqualTo("example@gmail.com");
+        assertThat(foud.getPasswordHash()).isEqualTo("passwordHash");
     }
 
     @DisplayName("email을 기준으로 회원 가입 여부를 조회한다.")
@@ -82,16 +86,26 @@ class JdbcMemberRepositoryTest {
     }
 
     @Test
-    @DisplayName("email을 기준으로 회원을 삭제한다.")
-    void deleteEmailTest() {
+    @DisplayName("id를 기준으로 회원을 삭제한다.")
+    void deleteByIdTest() {
         // given
         Member saved = memberRepository.save(Member.of("브라운", "example@gmail.com", "passwordHash"));
 
         // when
-        int deletedCount = memberRepository.deleteByEmail(saved.getEmail());
+        int deletedCount = memberRepository.deleteById(saved.getId());
 
         // then
-        assertThat(memberRepository.findByEmail(saved.getEmail())).isEmpty();
         assertThat(deletedCount).isEqualTo(1);
+    }
+
+    @DisplayName("id를 기준으로 회원 가입 여부를 조회한다.")
+    @Test
+    void existByIdTest() {
+        //given
+        Member saved = memberRepository.save(Member.of("브라운", "example@gmail.com", "passwordHash"));
+
+        //when & then
+        assertThat(memberRepository.existById(saved.getId())).isTrue();
+        assertThat(memberRepository.existById(999L)).isFalse();
     }
 }

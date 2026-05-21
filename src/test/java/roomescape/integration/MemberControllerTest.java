@@ -148,4 +148,44 @@ public class MemberControllerTest {
                 .then().statusCode(400)
                 .body("message", equalTo("이메일 형식이 유효하지 않습니다."));
     }
+
+    @DisplayName("회원 탈퇴에 성공하면 204를 반환한다.")
+    @Test
+    void deleteMember_success() {
+        //given
+        Map<String, Object> body = Map.of(
+                "name", "브라운",
+                "email", "example@gmail.com",
+                "rawPassword", "rawPassword"
+        );
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(body)
+                .when().post("/members")
+                .then().statusCode(204);
+
+        Map<String, Object> loginBody = Map.of(
+                "email", "example@gmail.com",
+                "password", "rawPassword"
+        );
+
+        String token = "Bearer " + RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(loginBody)
+                .when().post("/auth/login")
+                .then().statusCode(200)
+                .extract()
+                .jsonPath()
+                .getString("accessToken");
+
+        //when & then
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .header("Authorization", token)
+                .body(body)
+                .when().delete("/members/me")
+                .then().statusCode(204);
+    }
+
 }

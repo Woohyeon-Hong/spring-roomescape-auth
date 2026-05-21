@@ -2,6 +2,7 @@ package roomescape.auth.interceptor;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -31,8 +32,8 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         }
 
         boolean needAuthenticated =
-                hm.hasMethodAnnotation(RequireAuth.class)
-                        || hm.getBeanType().isAnnotationPresent(RequireAuth.class);
+                AnnotatedElementUtils.hasAnnotation(hm.getMethod(), RequireAuth.class)
+                        || AnnotatedElementUtils.hasAnnotation(hm.getBeanType(), RequireAuth.class);
 
         if (!needAuthenticated) {
             return true;

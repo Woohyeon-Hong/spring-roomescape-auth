@@ -1,7 +1,6 @@
 package roomescape.member.repository;
 
 import java.sql.PreparedStatement;
-import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -51,7 +50,7 @@ public class JdbcMemberRepository implements MemberRepository {
     }
 
     @Override
-    public Optional<Member> findByEmail(String email) {
+    public Member getByEmail(String email) {
         String sql = """
                 SELECT id, name, email, password_hash
                 FROM member
@@ -59,10 +58,11 @@ public class JdbcMemberRepository implements MemberRepository {
                 """;
 
         return jdbcTemplate.query(
-                sql,
-                MEMBER_ROW_MAPPER,
-                email
-        ).stream().findFirst();
+                        sql,
+                        MEMBER_ROW_MAPPER,
+                        email
+                ).stream().findFirst()
+                .orElseThrow(MemberNotFoundException::new);
     }
 
     @Override
@@ -96,12 +96,26 @@ public class JdbcMemberRepository implements MemberRepository {
     }
 
     @Override
-    public int deleteByEmail(String email) {
+    public boolean existById(Long id) {
         String sql = """
-                DELETE FROM member
-                WHERE email = ?
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM member
+                    WHERE id = ?
+                )
                 """;
 
-        return jdbcTemplate.update(sql, email);
+        Boolean exists = jdbcTemplate.queryForObject(sql, Boolean.class, id);
+        return Boolean.TRUE.equals(exists);
+    }
+
+    @Override
+    public int deleteById(Long id) {
+        String sql = """
+                DELETE FROM member
+                WHERE id = ?
+                """;
+
+        return jdbcTemplate.update(sql, id);
     }
 }

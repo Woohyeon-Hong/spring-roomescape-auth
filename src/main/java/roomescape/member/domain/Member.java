@@ -2,7 +2,6 @@ package roomescape.member.domain;
 
 import java.util.Objects;
 import org.mindrot.jbcrypt.BCrypt;
-import roomescape.member.exception.InvalidMemberRequestFormatException;
 
 public class Member {
 
@@ -12,8 +11,6 @@ public class Member {
     private final String passwordHash;
 
     public Member(Long id, String name, String email, String passwordHash) {
-        validate(name, email, passwordHash);
-
         this.id = id;
         this.name = name;
         this.email = email;
@@ -31,12 +28,6 @@ public class Member {
                 this.getEmail(),
                 this.getPasswordHash()
         );
-    }
-
-    private void validate(String name, String email, String password) {
-        if (name.isBlank() || email.isBlank() || password.isBlank()) {
-            throw new InvalidMemberRequestFormatException();
-        }
     }
 
     public boolean checkPasswordWith(String password) {
