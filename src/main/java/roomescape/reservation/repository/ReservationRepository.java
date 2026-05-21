@@ -9,7 +9,7 @@ public interface ReservationRepository {
 
     Reservation save(Reservation reservation);
 
-    List<Reservation> findAllByName(String name);
+    List<Reservation> findAllByMemberId(Long memberId);
 
     Optional<Reservation> findById(Long id);
 

@@ -133,31 +133,24 @@ class JdbcReservationRepositoryTest {
     }
 
     @Test
-    @DisplayName("이름에 해당하는 모든 예약 목록을 조회한다.")
-    void findAllByNameTest() {
+    @DisplayName("memberId를 가지는 모든 예약 목록을 조회한다.")
+    void findAllByMemberIdTest() {
         // given
         ReservationTime time = createTime(LocalTime.of(10, 0));
         Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
-
-        Member brown = createMember("브라운", "brown@gmail.com", "fdjfkeiejf");
-        Member pobi = createMember("포비", "pobi@gmail.com", "ejejfidjfei");
+        Member brown = createMember("브라운", "brown@gmail.com", "password_hash");
+        Member pobi = createMember("포비", "pobi@gmail.com", "password_hash");
 
         Reservation saved1 = createReservation(brown, LocalDate.of(2026, 5, 1), time, theme);
         Reservation saved2 = createReservation(brown, LocalDate.of(2026, 5, 2), time, theme);
         createReservation(pobi, LocalDate.of(2026, 5, 3), time, theme);
 
         // when
-        List<Reservation> reservations = reservationRepository.findAllByName("브라운");
+        List<Reservation> reservations = reservationRepository.findAllByMemberId(brown.getId());
 
         // then
         assertThat(reservations).hasSize(2);
         assertThat(reservations).containsExactly(saved1, saved2);
-    }
-
-    private Reservation createReservation(Member member, LocalDate date, ReservationTime time, Theme theme) {
-        return reservationRepository.save(
-                Reservation.of(member, date, time, theme)
-        );
     }
 
     @Test
@@ -174,6 +167,13 @@ class JdbcReservationRepositoryTest {
         assertThat(reservationRepository.findById(saved.getId())).isPresent();
         assertThat(reservationRepository.findById(999L)).isEmpty();
     }
+
+    private Reservation createReservation(Member member, LocalDate date, ReservationTime time, Theme theme) {
+        return reservationRepository.save(
+                Reservation.of(member, date, time, theme)
+        );
+    }
+
 
     @DisplayName("name, date, themeId, timeId가 같은 예약이 있는지 조회한다.")
     @Test
@@ -387,7 +387,7 @@ class JdbcReservationRepositoryTest {
         reservationRepository.deleteById(saved.getId());
 
         // then
-        List<Reservation> reservations = reservationRepository.findAllByName("브라운");
+        List<Reservation> reservations = reservationRepository.findAllByMemberId(brown.getId());
         assertThat(reservations).isEmpty();
     }
 

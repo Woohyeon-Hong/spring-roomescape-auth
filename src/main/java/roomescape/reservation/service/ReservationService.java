@@ -94,8 +94,8 @@ public class ReservationService {
         }
     }
 
-    public List<Reservation> findReservationsByName(String name) {
-        return reservationRepository.findAllByName(name);
+    public List<Reservation> findReservationsByMemberId(Long memberId) {
+        return reservationRepository.findAllByMemberId(memberId);
     }
 
     public List<Reservation> findReservations() {

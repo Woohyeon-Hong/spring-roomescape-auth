@@ -84,7 +84,7 @@ public class JdbcReservationRepository implements ReservationRepository {
     }
 
     @Override
-    public List<Reservation> findAllByName(String name) {
+    public List<Reservation> findAllByMemberId(Long memberId) {
         String sql = """
                 SELECT r.id AS reservation_id,
                        m.id AS member_id,
@@ -105,10 +105,10 @@ public class JdbcReservationRepository implements ReservationRepository {
                   ON r.theme_id = h.id
                 INNER JOIN member m
                   ON r.member_id = m.id
-                WHERE m.name = ?
+                WHERE m.id = ?
                 """;
 
-        return jdbcTemplate.query(sql, reservationRowMapper, name);
+        return jdbcTemplate.query(sql, reservationRowMapper, memberId);
     }
 
     @Override

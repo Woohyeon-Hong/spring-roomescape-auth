@@ -1,16 +1,20 @@
 package roomescape.reservation.controller;
 
 import java.net.URI;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import roomescape.auth.annotation.LoginMember;
 import roomescape.auth.annotation.RequireAuth;
 import roomescape.auth.annotation.RequireReservationOwner;
+import roomescape.member.domain.Member;
 import roomescape.reservation.controller.dto.ReservationRequest;
 import roomescape.reservation.controller.dto.ReservationResponse;
 import roomescape.reservation.controller.dto.ReservationUpdateRequest;
@@ -38,6 +42,16 @@ public class MyReservationController {
                 .build();
     }
 
+    @GetMapping
+    public ResponseEntity<List<ReservationResponse>> getAllMyReservations(@LoginMember Member member) {
+        List<ReservationResponse> responses = reservationService.findReservationsByMemberId(member.getId())
+                .stream()
+                .map(ReservationResponse::from)
+                .toList();
+
+        return ResponseEntity.ok(responses);
+    }
+
     @RequireReservationOwner
     @PatchMapping("/{id}")
     public ResponseEntity<Void> updateMyReservation(
@@ -47,7 +61,7 @@ public class MyReservationController {
         reservationService.updateReservation(request.toCommand(), id);
         return ResponseEntity.noContent().build();
     }
-    
+
     @RequireReservationOwner
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMyReservation(

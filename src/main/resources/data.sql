@@ -1,10 +1,12 @@
 DELETE FROM reservation;
 DELETE FROM reservation_time;
 DELETE FROM theme;
+DELETE FROM member;
 
 ALTER TABLE reservation ALTER COLUMN id RESTART WITH 1;
 ALTER TABLE reservation_time ALTER COLUMN id RESTART WITH 1;
 ALTER TABLE theme ALTER COLUMN id RESTART WITH 1;
+ALTER TABLE member ALTER COLUMN id RESTART WITH 1;
 
 INSERT INTO reservation_time (start_at) VALUES
 ('10:00:00'),
@@ -34,37 +36,66 @@ INSERT INTO theme (name, description, thumbnail_url) VALUES
 ('비밀 요원 작전', '이중 잠금 장치를 해제하고 기밀 문서를 회수하세요.', 'https://example.com/themes/secret-agent.jpg'),
 ('드래곤의 동굴', '드래곤이 잠든 사이 고대 룬을 해독해 동굴을 빠져나오세요.', 'https://example.com/themes/dragon-cave.jpg');
 
-INSERT INTO reservation (name, reservation_date, time_id, theme_id) VALUES
+INSERT INTO member (name, email, password_hash) VALUES
+('Minsu Kim', 'minsu.kim@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Soyeon Lee', 'soyeon.lee@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Jihoon Park', 'jihoon.park@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Yujin Choi', 'yujin.choi@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Haneul Jung', 'haneul.jung@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Jimin Han', 'jimin.han@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Sehun Oh', 'sehun.oh@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Areum Yoon', 'areum.yoon@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Doyoon Kang', 'doyoon.kang@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Yerin Shin', 'yerin.shin@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Jaehyun Lim', 'jaehyun.lim@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Nayeon Song', 'nayeon.song@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Hyunwoo Jo', 'hyunwoo.jo@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Sujin Baek', 'sujin.baek@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Jiho Moon', 'jiho.moon@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Daeun Seo', 'daeun.seo@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Minjae Kwon', 'minjae.kwon@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Jisu Nam', 'jisu.nam@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Yejun Hong', 'yejun.hong@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Dain Yoo', 'dain.yoo@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Taeyoon Jang', 'taeyoon.jang@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Seojin Noh', 'seojin.noh@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Siwoo Ryu', 'siwoo.ryu@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Gaeun Bae', 'gaeun.bae@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Hyunseo Ahn', 'hyunseo.ahn@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Mina Koo', 'mina.koo@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS'),
+('Dohyun Cha', 'dohyun.cha@example.com', '$2a$10$7QJk1mSMqA9uQ1PaXN8YGuMYmKTo95OfzmiEJeZVrDCTnhgypKekS');
+
+INSERT INTO reservation (member_id, reservation_date, time_id, theme_id) VALUES
 -- 최근 7일 이내 20개 (기준: 2026-05-06)
-('Minsu Kim', '2026-05-05', 1, 1),
-('Soyeon Lee', '2026-05-05', 2, 2),
-('Jihoon Park', '2026-05-05', 3, 3),
-('Yujin Choi', '2026-05-05', 4, 4),
-('Haneul Jung', '2026-05-05', 5, 5),
+    (1, '2026-05-05', 1, 1),
+    (2, '2026-05-05', 2, 2),
+    (3, '2026-05-05', 3, 3),
+    (4, '2026-05-05', 4, 4),
+    (5, '2026-05-05', 5, 5),
 
-('Jimin Han', '2026-05-04', 1, 6),
-('Sehun Oh', '2026-05-04', 2, 7),
-('Areum Yoon', '2026-05-04', 3, 8),
-('Doyoon Kang', '2026-05-04', 4, 9),
-('Yerin Shin', '2026-05-04', 5, 10),
+    (6, '2026-05-04', 1, 6),
+    (7, '2026-05-04', 2, 7),
+    (8, '2026-05-04', 3, 8),
+    (9, '2026-05-04', 4, 9),
+    (10, '2026-05-04', 5, 10),
 
-('Jaehyun Lim', '2026-05-03', 1, 11),
-('Nayeon Song', '2026-05-03', 2, 12),
-('Hyunwoo Jo', '2026-05-03', 3, 13),
-('Sujin Baek', '2026-05-03', 4, 14),
-('Jiho Moon', '2026-05-03', 5, 15),
+    (11, '2026-05-03', 1, 11),
+    (12, '2026-05-03', 2, 12),
+    (13, '2026-05-03', 3, 13),
+    (14, '2026-05-03', 4, 14),
+    (15, '2026-05-03', 5, 15),
 
-('Daeun Seo', '2026-05-02', 1, 2),
-('Minjae Kwon', '2026-05-01', 2, 4),
-('Jisu Nam', '2026-04-30', 3, 6),
-('Yejun Hong', '2026-04-29', 4, 8),
-('Dain Yoo', '2026-04-29', 5, 10),
+    (16, '2026-05-02', 1, 2),
+    (17, '2026-05-01', 2, 4),
+    (18, '2026-04-30', 3, 6),
+    (19, '2026-04-29', 4, 8),
+    (20, '2026-04-29', 5, 10),
 
 -- 7일 이전 7개
-('Taeyoon Jang', '2026-04-28', 1, 3),
-('Seojin Noh', '2026-04-26', 2, 5),
-('Siwoo Ryu', '2026-04-24', 3, 7),
-('Gaeun Bae', '2026-04-21', 4, 9),
-('Hyunseo Ahn', '2026-04-16', 5, 11),
-('Mina Koo', '2026-04-06', 1, 13),
-('Dohyun Cha', '2026-03-22', 2, 15);
+    (21, '2026-04-28', 1, 3),
+    (22, '2026-04-26', 2, 5),
+    (23, '2026-04-24', 3, 7),
+    (24, '2026-04-21', 4, 9),
+    (25, '2026-04-16', 5, 11),
+    (26, '2026-04-06', 1, 13),
+    (27, '2026-03-22', 2, 15);

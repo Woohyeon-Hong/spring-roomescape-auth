@@ -16,7 +16,9 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import roomescape.member.domain.Member;
@@ -49,23 +51,19 @@ class ReservationServiceTest {
     @Mock
     MemberRepository memberRepository;
 
+    @Spy
+    Clock clock = Clock.fixed(
+            Instant.parse("2026-05-08T00:00:00Z"),
+            ZoneId.of("Asia/Seoul")
+    );
+
+    @InjectMocks
+    ReservationService reservationService;
+
     @DisplayName("인기 테마 조회 시 period=7이면 오늘 제외 직전 7일 범위로 조회한다.")
     @Test
     void findPopularThemesRange() {
         //given
-        Clock clock = Clock.fixed(
-                Instant.parse("2026-05-08T00:00:00Z"),
-                ZoneId.of("Asia/Seoul")
-        );
-
-        ReservationService reservationService = new ReservationService(
-                reservationRepository,
-                reservationTimeRepository,
-                themeRepository,
-                memberRepository,
-                clock
-        );
-
         when(
                 reservationRepository.findPopularThemes(
                         LocalDate.of(2026, 5, 1),
@@ -105,19 +103,6 @@ class ReservationServiceTest {
     @Test
     void makeReservation_duplicate() {
         //given
-        Clock clock = Clock.fixed(
-                Instant.parse("2026-05-08T00:00:00Z"),
-                ZoneId.of("Asia/Seoul")
-        );
-
-        ReservationService reservationService = new ReservationService(
-                reservationRepository,
-                reservationTimeRepository,
-                themeRepository,
-                memberRepository,
-                clock
-        );
-
         when(reservationTimeRepository.findById(any()))
                 .thenReturn(Optional.of(new ReservationTime(1L, LocalTime.of(10, 0))));
 
@@ -138,24 +123,32 @@ class ReservationServiceTest {
         )).isInstanceOf(DuplicateReservationException.class);
     }
 
+    @DisplayName("memberId에 해당하는 모든 예약들을 조회한다.")
+    @Test
+    void findReservationsByMemberIdTest() {
+        //given
+        Member member = new Member(1L, "브라운", "example@gmail.com", "passwordHash");
+        ReservationTime time = new ReservationTime(1L, LocalTime.of(10, 0));
+        Theme theme = new Theme(1L, "테마", "설명", "thumbnailUrl");
+
+        List<Reservation> reservations = List.of(
+                new Reservation(1L, member, LocalDate.of(2026, 5, 15), time, theme),
+                new Reservation(2L, member, LocalDate.of(2026, 5, 16), time, theme)
+        );
+
+        when(reservationRepository.findAllByMemberId(1L))
+                .thenReturn(reservations);
+
+        //when
+        List<Reservation> result = reservationService.findReservationsByMemberId(1L);
+
+        //then
+        assertThat(result).containsExactlyElementsOf(reservations);
+    }
+
     @DisplayName("id에 해당하는 예약이 없으면 예외가 발생한다.")
     @Test
     void deleteReservationById_not_found() {
-        //given
-        Clock clock = Clock.fixed(
-                Instant.parse("2026-05-08T00:00:00Z"),
-                ZoneId.of("Asia/Seoul")
-        );
-
-        ReservationService reservationService = new ReservationService(
-                reservationRepository,
-                reservationTimeRepository,
-                themeRepository,
-                memberRepository,
-                clock
-        );
-
-        //when & then
         assertThatThrownBy(() -> reservationService.deleteReservationById(1L))
                 .isInstanceOf(ReservationNotFoundException.class);
     }
@@ -164,19 +157,6 @@ class ReservationServiceTest {
     @Test
     void updateReservation_duplicate() {
         //given
-        Clock clock = Clock.fixed(
-                Instant.parse("2026-05-08T00:00:00Z"),
-                ZoneId.of("Asia/Seoul")
-        );
-
-        ReservationService reservationService = new ReservationService(
-                reservationRepository,
-                reservationTimeRepository,
-                themeRepository,
-                memberRepository,
-                clock
-        );
-
         when(reservationTimeRepository.findById(any()))
                 .thenReturn(Optional.of(new ReservationTime(1L, LocalTime.of(10, 0))));
 
