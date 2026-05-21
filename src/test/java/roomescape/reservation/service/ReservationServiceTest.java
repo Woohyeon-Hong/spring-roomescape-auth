@@ -19,6 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import roomescape.member.domain.Member;
+import roomescape.member.repository.MemberRepository;
 import roomescape.reservation.domain.Reservation;
 import roomescape.reservation.exception.DuplicateReservationException;
 import roomescape.reservation.exception.ReservationNotFoundException;
@@ -44,6 +46,9 @@ class ReservationServiceTest {
     @Mock
     ThemeRepository themeRepository;
 
+    @Mock
+    MemberRepository memberRepository;
+
     @DisplayName("인기 테마 조회 시 period=7이면 오늘 제외 직전 7일 범위로 조회한다.")
     @Test
     void findPopularThemesRange() {
@@ -57,6 +62,7 @@ class ReservationServiceTest {
                 reservationRepository,
                 reservationTimeRepository,
                 themeRepository,
+                memberRepository,
                 clock
         );
 
@@ -108,6 +114,7 @@ class ReservationServiceTest {
                 reservationRepository,
                 reservationTimeRepository,
                 themeRepository,
+                memberRepository,
                 clock
         );
 
@@ -117,13 +124,16 @@ class ReservationServiceTest {
         when(themeRepository.findById(any()))
                 .thenReturn(Optional.of(new Theme(1L, "이름", "설명", "thumbnailUrl")));
 
+        when(memberRepository.getById(any()))
+                .thenReturn(new Member(1L, "브라운", "example@gmail.com", "passwordHash"));
+
         when(reservationRepository.save(any()))
                 .thenThrow(new DataIntegrityViolationException("duplicate"));
 
         //when & then
         assertThatThrownBy(() -> reservationService.makeReservation(
                 new ReservationCommand(
-                        "브라운", LocalDate.of(2026, 5, 15), 1L, 1L
+                        1L, LocalDate.of(2026, 5, 15), 1L, 1L
                 )
         )).isInstanceOf(DuplicateReservationException.class);
     }
@@ -141,6 +151,7 @@ class ReservationServiceTest {
                 reservationRepository,
                 reservationTimeRepository,
                 themeRepository,
+                memberRepository,
                 clock
         );
 
@@ -162,6 +173,7 @@ class ReservationServiceTest {
                 reservationRepository,
                 reservationTimeRepository,
                 themeRepository,
+                memberRepository,
                 clock
         );
 
@@ -172,11 +184,11 @@ class ReservationServiceTest {
                 .thenReturn(Optional.of(
                         new Reservation(
                                 1L,
-                                "브라운",
+                                new Member(1L, "브라운", "example@gmail.com", "passwordHash"),
                                 LocalDate.of(2026, 5, 15),
                                 new ReservationTime(1L, LocalTime.of(10, 0)),
                                 new Theme(1L, "이름", "설명", "thumbnailUrl")
-                                )
+                        )
                 ));
 
         when(reservationRepository.existByDateAndTimeIdAndThemeIdExceptId(

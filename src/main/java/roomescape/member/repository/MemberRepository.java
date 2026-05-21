@@ -11,5 +11,7 @@ public interface MemberRepository {
 
     boolean existByEmail(String email);
 
+    Member getById(Long id);
+
     int deleteByEmail(String email);
 }

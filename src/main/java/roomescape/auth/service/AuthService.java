@@ -11,7 +11,7 @@ import roomescape.member.service.MemberService;
 @Service
 public class AuthService {
 
-    private static final String BEARER = "BEARER";
+    private static final String BEARER = "Bearer";
 
     private final MemberService memberService;
     private final JwtProvider jwtProvider;
@@ -28,7 +28,7 @@ public class AuthService {
             throw new LoginFailureException();
         }
 
-        String token = jwtProvider.createAccessToken(member.id());
+        String token = jwtProvider.createAccessToken(member.getId());
         Long expiresIn = jwtProvider.calculateExpiresIn(token);
 
         return new LoginResult(

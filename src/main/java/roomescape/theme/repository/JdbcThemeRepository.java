@@ -13,7 +13,7 @@ import roomescape.theme.domain.Theme;
 @Repository
 public class JdbcThemeRepository implements ThemeRepository {
 
-    private static final RowMapper<Theme> ThemeMapper = (resultSet, rowNum) ->
+    private static final RowMapper<Theme> THEME_ROW_MAPPER = (resultSet, rowNum) ->
             new Theme(
                     resultSet.getLong("id"),
                     resultSet.getString("name"),
@@ -30,9 +30,9 @@ public class JdbcThemeRepository implements ThemeRepository {
     @Override
     public Theme save(Theme theme) {
         String sql = """
-               INSERT INTO theme (name, description, thumbnail_url)
-               VALUES (?, ?, ?)
-               """;
+                INSERT INTO theme (name, description, thumbnail_url)
+                VALUES (?, ?, ?)
+                """;
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
@@ -57,24 +57,24 @@ public class JdbcThemeRepository implements ThemeRepository {
     @Override
     public Optional<Theme> findById(Long id) {
         String sql = """
-               SELECT *
-               FROM theme
-               WHERE id = ?
-               """;
+                SELECT *
+                FROM theme
+                WHERE id = ?
+                """;
 
-        return jdbcTemplate.query(sql, ThemeMapper, id)
+        return jdbcTemplate.query(sql, THEME_ROW_MAPPER, id)
                 .stream().findFirst();
     }
 
     @Override
     public boolean existByName(String name) {
         String sql = """
-               SELECT EXISTS(
-                   SELECT 1
-                   FROM theme
-                   WHERE name = ?   
-               )
-               """;
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM theme
+                    WHERE name = ?   
+                )
+                """;
 
         Boolean exists = jdbcTemplate.queryForObject(sql, Boolean.class, name);
         return Boolean.TRUE.equals(exists);
@@ -87,15 +87,15 @@ public class JdbcThemeRepository implements ThemeRepository {
                 FROM theme
                 """;
 
-        return jdbcTemplate.query(sql, ThemeMapper);
+        return jdbcTemplate.query(sql, THEME_ROW_MAPPER);
     }
 
     @Override
     public int deleteById(Long id) {
         String sql = """
-               DELETE FROM theme
-               WHERE id = ?
-               """;
+                DELETE FROM theme
+                WHERE id = ?
+                """;
 
         return jdbcTemplate.update(sql, id);
     }

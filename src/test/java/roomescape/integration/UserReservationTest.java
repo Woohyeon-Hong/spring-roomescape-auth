@@ -38,6 +38,8 @@ public class UserReservationTest {
         createTheme("우아한 테마", "우아한테크코스 전용 테마입니다.", "https://example.com/image.png");
         createTheme("페어 테마", "페어 전용 테마입니다.", "https://example.com/pair.png");
 
+        createMember("브라운", "example@gmail.com", "rawPassword");
+
         List<ReservationTime> beforeReservationResults = getAvailableTimes(LocalDate.of(2026, 5, 5), 1L);
 
         assertThat(beforeReservationResults).hasSize(4);
@@ -45,14 +47,16 @@ public class UserReservationTest {
                 .containsExactly(1L, 2L, 3L, 4L);
         assertThat(beforeReservationResults.stream().map(ReservationTime::getStartAt).toList())
                 .containsExactly(
-                LocalTime.of(10, 0),
-                LocalTime.of(11, 0),
-                LocalTime.of(12, 0),
-                LocalTime.of(13, 0)
-        );
+                        LocalTime.of(10, 0),
+                        LocalTime.of(11, 0),
+                        LocalTime.of(12, 0),
+                        LocalTime.of(13, 0)
+                );
 
-        createReservation("브라운", LocalDate.of(2026, 5, 5), 1L, 1L);
-        createReservation("포비", LocalDate.of(2026, 5, 6), 2L, 2L);
+        createReservation("example@gmail.com", "rawPassword",
+                1L, LocalDate.of(2026, 5, 5), 1L, 1L);
+        createReservation("example@gmail.com", "rawPassword",
+                1L, LocalDate.of(2026, 5, 6), 2L, 2L);
 
         assertThat(getAvailableTimes(LocalDate.of(2026, 5, 5), 1L)).hasSize(3);
         assertThat(getAvailableTimes(LocalDate.of(2026, 5, 6), 1L)).hasSize(4);
@@ -61,25 +65,25 @@ public class UserReservationTest {
     }
 
     private void createReservationTime(String startAt) {
-        Map<String, Object> reservationTime = new HashMap<>();
-        reservationTime.put("startAt", startAt);
+        Map<String, Object> body = new HashMap<>();
+        body.put("startAt", startAt);
 
         RestAssured.given()
                 .contentType(ContentType.JSON)
-                .body(reservationTime)
+                .body(body)
                 .when().post("/admin/times")
                 .then().statusCode(201);
     }
 
     private void createTheme(String name, String description, String thumbnailUrl) {
-        Map<String, Object> theme = new HashMap<>();
-        theme.put("name", name);
-        theme.put("description", description);
-        theme.put("thumbnailUrl", thumbnailUrl);
+        Map<String, Object> body = new HashMap<>();
+        body.put("name", name);
+        body.put("description", description);
+        body.put("thumbnailUrl", thumbnailUrl);
 
         RestAssured.given()
                 .contentType(ContentType.JSON)
-                .body(theme)
+                .body(body)
                 .when().post("/admin/themes")
                 .then().statusCode(201);
     }
@@ -96,18 +100,50 @@ public class UserReservationTest {
                 .getList(".", ReservationTime.class);
     }
 
+    private void createMember(String name, String email, String rawPassword) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("name", name);
+        body.put("email", email);
+        body.put("rawPassword", rawPassword);
 
-    private void createReservation(String name, LocalDate date, Long timeId, Long themeId) {
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(body)
+                .when().post("/members")
+                .then().statusCode(204);
+    }
+
+    private void createReservation(String email, String password, Long memberId, LocalDate date, Long timeId,
+                                   Long themeId) {
+        String token = login(email, password);
+
         Map<String, Object> reservation = new HashMap<>();
-        reservation.put("name", name);
+        reservation.put("memberId", memberId);
         reservation.put("date", date.toString());
         reservation.put("timeId", timeId);
         reservation.put("themeId", themeId);
 
         RestAssured.given()
                 .contentType(ContentType.JSON)
+                .header("Authorization", token)
                 .body(reservation)
-                .when().post("/reservations")
+                .when().post("/members/me/reservations")
                 .then().statusCode(201);
+    }
+
+    private String login(String email, String password) {
+        Map<String, Object> loginBody = Map.of(
+                "email", email,
+                "password", password
+        );
+
+        return "Bearer " + RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(loginBody)
+                .when().post("/auth/login")
+                .then().statusCode(200)
+                .extract()
+                .jsonPath()
+                .getString("accessToken");
     }
 }

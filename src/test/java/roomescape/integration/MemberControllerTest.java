@@ -28,16 +28,16 @@ public class MemberControllerTest {
     @Test
     void createMember_success() {
         //given
-        Map<String, Object> params = Map.of(
-            "name", "브라운",
-            "email", "example@gmail.com",
-            "rawPassword", "rawPassword"
+        Map<String, Object> body = Map.of(
+                "name", "브라운",
+                "email", "example@gmail.com",
+                "rawPassword", "rawPassword"
         );
 
         //when & then
         RestAssured.given()
                 .contentType(ContentType.JSON)
-                .body(params)
+                .body(body)
                 .when().post("/members")
                 .then().statusCode(204);
     }
@@ -46,7 +46,7 @@ public class MemberControllerTest {
     @Test
     void createMember_duplicate_email() {
         //given
-        Map<String, Object> params = Map.of(
+        Map<String, Object> body = Map.of(
                 "name", "브라운",
                 "email", "example@gmail.com",
                 "rawPassword", "rawPassword"
@@ -54,14 +54,14 @@ public class MemberControllerTest {
 
         RestAssured.given()
                 .contentType(ContentType.JSON)
-                .body(params)
+                .body(body)
                 .when().post("/members")
                 .then().statusCode(204);
 
         //when & then
         RestAssured.given()
                 .contentType(ContentType.JSON)
-                .body(params)
+                .body(body)
                 .when().post("/members")
                 .then().statusCode(409)
                 .body("message", equalTo("이미 회원이 가입돼 있습니다."));

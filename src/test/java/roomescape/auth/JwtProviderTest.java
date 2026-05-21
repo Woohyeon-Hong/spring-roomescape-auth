@@ -14,15 +14,17 @@ import roomescape.auth.exception.ExpiredAccessTokenException;
 
 class JwtProviderTest {
 
+    private static final String TEST_SECRET = "test_8mV9rQ2xKp7Ld4NzTt1YwE6uJc3Hs5BxQf0Ra8DnUv4";
+
     @DisplayName("memberId로 토큰을 생성할 수 있다.")
     @Test
     void createAccessTokenTest() {
         //given
         JwtProvider jwtProvider = new JwtProvider(
-                "test_8mV9rQ2xKp7Ld4NzTt1YwE6uJc3Hs5BxQf0Ra8DnUv4",
+                TEST_SECRET,
                 3600L,
                 Clock.fixed(
-                        Instant.parse("2026-05-20T00:00:00Z"),
+                        Instant.parse("2026-05-01T00:00:00Z"),
                         ZoneId.of("Asia/Seoul")
                 )
         );
@@ -37,10 +39,10 @@ class JwtProviderTest {
     void extractSubTest_success() {
         //given
         JwtProvider jwtProvider = new JwtProvider(
-                "test_8mV9rQ2xKp7Ld4NzTt1YwE6uJc3Hs5BxQf0Ra8DnUv4",
+                TEST_SECRET,
                 3600L,
                 Clock.fixed(
-                        Instant.parse("2026-05-20T00:00:00Z"),
+                        Instant.parse("2026-05-01T00:00:00Z"),
                         ZoneId.of("Asia/Seoul")
                 )
         );
@@ -57,12 +59,12 @@ class JwtProviderTest {
     void extractSubTest_expire() {
         //given
         Clock before = Clock.fixed(
-                Instant.parse("2026-05-20T00:00:00Z"),
+                Instant.parse("2026-05-01T00:00:00Z"),
                 ZoneId.of("Asia/Seoul")
         );
 
         JwtProvider beforeProvider = new JwtProvider(
-                "test_8mV9rQ2xKp7Ld4NzTt1YwE6uJc3Hs5BxQf0Ra8DnUv4",
+                TEST_SECRET,
                 1L,
                 before
         );
@@ -72,7 +74,7 @@ class JwtProviderTest {
         Clock after = Clock.offset(before, Duration.ofSeconds(2));
 
         JwtProvider afterProvider = new JwtProvider(
-                "test_8mV9rQ2xKp7Ld4NzTt1YwE6uJc3Hs5BxQf0Ra8DnUv4",
+                TEST_SECRET,
                 1L,
                 after);
 
@@ -86,12 +88,12 @@ class JwtProviderTest {
     void calculateExpiresInTest() {
         //given
         Clock before = Clock.fixed(
-                Instant.parse("2026-05-20T00:00:00Z"),
+                Instant.parse("2026-05-01T00:00:00Z"),
                 ZoneId.of("Asia/Seoul")
         );
 
         JwtProvider beforeProvider = new JwtProvider(
-                "test_8mV9rQ2xKp7Ld4NzTt1YwE6uJc3Hs5BxQf0Ra8DnUv4",
+                TEST_SECRET,
                 3L,
                 before
         );
@@ -101,7 +103,7 @@ class JwtProviderTest {
         Clock after = Clock.offset(before, Duration.ofSeconds(1));
 
         JwtProvider afterProvider = new JwtProvider(
-                "test_8mV9rQ2xKp7Ld4NzTt1YwE6uJc3Hs5BxQf0Ra8DnUv4",
+                TEST_SECRET,
                 1L,
                 after);
 

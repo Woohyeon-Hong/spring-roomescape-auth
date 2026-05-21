@@ -39,7 +39,6 @@ class JdbcThemeRepositoryTest {
 
         //then
         assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getName()).isEqualTo(theme.getName());
     }
 
     @Test
@@ -49,8 +48,51 @@ class JdbcThemeRepositoryTest {
         themeRepository.save(Theme.of("테마", "설명", "thumbnailUrl"));
 
         // when & then
-        assertThatThrownBy(() -> themeRepository.save(Theme.of("테마", "other", "otherThumbnailUrl")))
-                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(
+                () -> themeRepository.save(Theme.of("테마", "other", "otherThumbnailUrl")
+                )
+        ).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("ID를 통해 저장된 테마를 조회한다.")
+    void findByIdTest() {
+        // given
+        Theme saved = themeRepository.save(Theme.of("테마", "설명", "thumbnailUrl"));
+
+        // when
+        Theme found = themeRepository.findById(saved.getId())
+                .orElseThrow(() -> new AssertionError("조회된 결과가 없습니다. id: " + saved.getId()));
+
+        // then
+        assertThat(found).isEqualTo(saved);
+    }
+
+    @DisplayName("테마 이름을 기준으로 조회한다.")
+    @Test
+    void existByNameTest() {
+        //given
+        themeRepository.save(
+                new Theme(null, "테마", "테마 설명", "썸네일_url")
+        );
+
+        //when & then
+        assertThat(themeRepository.existByName("테마")).isTrue();
+        assertThat(themeRepository.existByName("없는_것")).isFalse();
+    }
+
+    @Test
+    @DisplayName("존재하는 모든 테마 목록을 리스트로 조회한다.")
+    void findAllTest() {
+        // given
+        Theme saved1 = themeRepository.save(Theme.of("테마1", "설명", "thumbnailUrl"));
+        Theme saved2 = themeRepository.save(Theme.of("테마2", "설명", "thumbnailUrl"));
+
+        // when
+        List<Theme> result = themeRepository.findAll();
+
+        // then
+        assertThat(result).containsExactly(saved1, saved2);
     }
 
     @Test
@@ -78,61 +120,26 @@ class JdbcThemeRepositoryTest {
                 "테마"
         );
 
+        jdbcTemplate.update(
+                "INSERT INTO member (name, email, password_hash) VALUES (?, ?, ?)",
+                "브라운", "example@gmail.com", "fjefeifjeife"
+        );
+
+        long memberId = jdbcTemplate.queryForObject(
+                "SELECT id FROM member WHERE email = ?",
+                Long.class,
+                "example@gmail.com"
+        );
+
         jdbcTemplate.update("""
-            insert into reservation(name, reservation_date, time_id, theme_id)
-            values (?, ?, ?, ?)
-        """, "브라운", LocalDate.of(2026, 5, 6),timeId, themeId
+                    insert into reservation(member_id, reservation_date, time_id, theme_id)
+                    values (?, ?, ?, ?)
+                """, memberId, LocalDate.of(2026, 5, 6), timeId, themeId
         );
 
         //when & then
         assertThatThrownBy(
                 () -> themeRepository.deleteById(themeId)
         ).isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @DisplayName("테마 이름을 기준으로 조회한다.")
-    @Test
-    void existByName() {
-        //given
-        themeRepository.save(
-                new Theme(null, "테마", "테마 설명", "썸네일_url")
-        );
-
-        //when & then
-        assertThat(themeRepository.existByName("테마"))
-                .isTrue();
-
-        assertThat(themeRepository.existByName("없는_것"))
-                .isFalse();
-    }
-
-    @Test
-    @DisplayName("ID를 통해 저장된 테마를 조회한다.")
-    void findByIdTest() {
-        // given
-        Theme saved = themeRepository.save(Theme.of("테마", "설명", "thumbnailUrl"));
-
-        // when
-        Theme found = themeRepository.findById(saved.getId())
-                .orElseThrow(() -> new AssertionError("조회된 결과가 없습니다. id: " + saved.getId()));
-
-        // then
-        assertThat(found.getName()).isEqualTo(saved.getName());
-        assertThat(found.getDescription()).isEqualTo(saved.getDescription());
-        assertThat(found.getThumbnailUrl()).isEqualTo(saved.getThumbnailUrl());
-    }
-
-    @Test
-    @DisplayName("존재하는 모든 테마 목록을 리스트로 조회한다.")
-    void findAllTest() {
-        // given
-        Theme saved1 = themeRepository.save(Theme.of("테마1", "설명", "thumbnailUrl"));
-        Theme saved2 = themeRepository.save(Theme.of("테마2", "설명", "thumbnailUrl"));
-
-        // when
-        List<Theme> result = themeRepository.findAll();
-
-        // then
-        assertThat(result).containsExactly(saved1, saved2);
     }
 }

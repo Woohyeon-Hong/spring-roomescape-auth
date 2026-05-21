@@ -24,7 +24,7 @@ public class AuthControllerTest {
         databaseHelper.clear();
     }
 
-    @DisplayName("로그인을 성공하면 200을 반환한다.")
+    @DisplayName("로그인을 성공하면 토큰과 함께 200을 반환한다.")
     @Test
     void loginTest_success() {
         //given
@@ -52,7 +52,7 @@ public class AuthControllerTest {
                 .when().post("/auth/login")
                 .then().statusCode(200)
                 .body("accessToken", notNullValue())
-                .body("tokenType", equalTo("BEARER"))
+                .body("tokenType", equalTo("Bearer"))
                 .body("expiresIn", equalTo(3600));
     }
 
@@ -83,5 +83,22 @@ public class AuthControllerTest {
                 .body(loginBody)
                 .when().post("/auth/login")
                 .then().statusCode(401);
+    }
+
+    @DisplayName("로그인 시 회원가입이 안 돼 있으면 404을 반환한다.")
+    @Test
+    void loginTest_not_found() {
+        //given
+        Map<String, Object> loginBody = Map.of(
+                "email", "example@gmail.com",
+                "password", "other"
+        );
+
+        //when & then
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(loginBody)
+                .when().post("/auth/login")
+                .then().statusCode(404);
     }
 }

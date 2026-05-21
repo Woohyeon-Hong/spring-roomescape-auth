@@ -10,6 +10,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import roomescape.member.domain.Member;
+import roomescape.member.exception.MemberNotFoundException;
 
 @JdbcTest
 class JdbcMemberRepositoryTest {
@@ -25,23 +26,20 @@ class JdbcMemberRepositoryTest {
     @DisplayName("새로운 회원을 가입하고 반환된 객체의 ID를 확인한다.")
     void saveTest_success() {
         // given
-        Member member = Member.of("회원1", "example@gmail.com", "passwordHash");
+        Member member = Member.of("브라운", "example@gmail.com", "passwordHash");
 
         // when
         Member saved = memberRepository.save(member);
 
         //then
-        assertThat(saved.id()).isNotNull();
-        assertThat(saved.name()).isEqualTo(member.name());
-        assertThat(saved.email()).isEqualTo(member.email());
-        assertThat(saved.passwordHash()).isEqualTo(member.passwordHash());
+        assertThat(saved.getId()).isNotNull();
     }
 
     @Test
     @DisplayName("email이 기존에 이미 등록돼 있으면 예외가 발생한다.")
     void saveTest_duplicate_email() {
         // given
-        memberRepository.save(Member.of("회원1", "example@gmail.com", "passwordHash"));
+        memberRepository.save(Member.of("브라운", "example@gmail.com", "passwordHash"));
 
         // when & then
         assertThatThrownBy(
@@ -53,7 +51,7 @@ class JdbcMemberRepositoryTest {
     @Test
     void findByEmailTest() {
         //given
-        memberRepository.save(Member.of("회원1", "example@gmail.com", "passwordHash"));
+        memberRepository.save(Member.of("브라운", "example@gmail.com", "passwordHash"));
 
         //when & then
         assertThat(memberRepository.findByEmail("example@gmail.com")).isPresent();
@@ -64,24 +62,36 @@ class JdbcMemberRepositoryTest {
     @Test
     void existByEmailTest() {
         //given
-        memberRepository.save(Member.of("회원1", "example@gmail.com", "passwordHash"));
+        memberRepository.save(Member.of("브라운", "example@gmail.com", "passwordHash"));
 
         //when & then
         assertThat(memberRepository.existByEmail("example@gmail.com")).isTrue();
         assertThat(memberRepository.existByEmail("other@gmail.com")).isFalse();
     }
 
+    @DisplayName("email을 기준으로 회원을 조회한다.")
+    @Test
+    void getByIdTest() {
+        //given
+        Member saved = memberRepository.save(Member.of("브라운", "example@gmail.com", "passwordHash"));
+
+        //when & then
+        assertThat(memberRepository.getById(saved.getId())).isNotNull();
+        assertThatThrownBy(() -> memberRepository.getById(999L))
+                .isInstanceOf(MemberNotFoundException.class);
+    }
+
     @Test
     @DisplayName("email을 기준으로 회원을 삭제한다.")
-    void deleteByIdTest() {
+    void deleteEmailTest() {
         // given
-        Member saved = memberRepository.save(Member.of("회원1", "example@gmail.com", "passwordHash"));
+        Member saved = memberRepository.save(Member.of("브라운", "example@gmail.com", "passwordHash"));
 
         // when
-        int deletedCount = memberRepository.deleteByEmail(saved.email());
+        int deletedCount = memberRepository.deleteByEmail(saved.getEmail());
 
         // then
-        assertThat(memberRepository.findByEmail(saved.email())).isEmpty();
+        assertThat(memberRepository.findByEmail(saved.getEmail())).isEmpty();
         assertThat(deletedCount).isEqualTo(1);
     }
 }

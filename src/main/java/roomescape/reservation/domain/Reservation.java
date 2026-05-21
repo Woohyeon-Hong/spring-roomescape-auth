@@ -2,68 +2,40 @@ package roomescape.reservation.domain;
 
 import java.time.LocalDate;
 import java.util.Objects;
-import roomescape.reservation.exception.InvalidReservationRequestFormatException;
+import roomescape.member.domain.Member;
 import roomescape.theme.domain.Theme;
 import roomescape.time.domain.ReservationTime;
 
 public class Reservation {
 
     private final Long id;
-    private final String name;
+    private final Member member;
     private final LocalDate date;
     private final ReservationTime time;
     private final Theme theme;
 
-    public Reservation(Long id, String name, LocalDate date, ReservationTime time, Theme theme) {
-        validateName(name);
-
+    public Reservation(Long id, Member member, LocalDate date, ReservationTime time, Theme theme) {
         this.id = id;
-        this.name = name;
+        this.member = member;
         this.date = date;
         this.time = time;
         this.theme = theme;
     }
 
-    public static Reservation of(String name, LocalDate date, ReservationTime time, Theme theme) {
-        return new Reservation(null, name, date, time, theme);
-    }
-
-    private void validateName(String name) {
-        if (name.isBlank()) {
-            throw new InvalidReservationRequestFormatException();
-        }
-    }
-
-    public Reservation updateDate(LocalDate date) {
-        return new Reservation(
-                this.id,
-                this.name,
-                date,
-                this.time,
-                this.theme
-        );
-    }
-
-    public Reservation updateTime(ReservationTime time) {
-        return new Reservation(
-                this.id,
-                this.name,
-                this.date,
-                time,
-                this.theme
-        );
-    }
-
-    public boolean hasSameName(String name) {
-        return this.name.equals(name);
+    public static Reservation of(Member member, LocalDate date, ReservationTime time, Theme theme) {
+        return new Reservation(null, member, date, time, theme);
     }
 
     public Long getId() {
         return id;
     }
 
+    public Member getMember() {
+        return member;
+    }
+
     public String getName() {
-        return name;
+        return member.getName();
     }
 
     public LocalDate getDate() {
@@ -76,6 +48,26 @@ public class Reservation {
 
     public Theme getTheme() {
         return theme;
+    }
+
+    public Reservation updateDate(LocalDate date) {
+        return new Reservation(
+                this.id,
+                this.member,
+                date,
+                this.time,
+                this.theme
+        );
+    }
+
+    public Reservation updateTime(ReservationTime time) {
+        return new Reservation(
+                this.id,
+                this.member,
+                this.date,
+                time,
+                this.theme
+        );
     }
 
     @Override
@@ -91,5 +83,9 @@ public class Reservation {
     @Override
     public int hashCode() {
         return Objects.hashCode(getId());
+    }
+
+    public boolean isMadeBy(Long memberId) {
+        return this.getMember().getId().equals(memberId);
     }
 }

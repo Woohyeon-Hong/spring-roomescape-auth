@@ -7,6 +7,8 @@ import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import roomescape.member.domain.Member;
+import roomescape.member.repository.MemberRepository;
 import roomescape.reservation.domain.Reservation;
 import roomescape.reservation.exception.DuplicateReservationException;
 import roomescape.reservation.exception.InvalidReservationDateValueException;
@@ -29,14 +31,17 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final ReservationTimeRepository reservationTimeRepository;
     private final ThemeRepository themeRepository;
+    private final MemberRepository memberRepository;
     private final Clock clock;
 
     public ReservationService(ReservationRepository reservationRepository,
                               ReservationTimeRepository reservationTimeRepository, ThemeRepository themeRepository,
+                              MemberRepository memberRepository,
                               Clock clock) {
         this.reservationRepository = reservationRepository;
         this.reservationTimeRepository = reservationTimeRepository;
         this.themeRepository = themeRepository;
+        this.memberRepository = memberRepository;
         this.clock = clock;
     }
 
@@ -56,11 +61,12 @@ public class ReservationService {
         Theme theme = themeRepository.findById(command.themeId())
                 .orElseThrow(ThemeNotFoundException::new);
 
+        Member member = memberRepository.getById(command.memberId());
 
         try {
             return reservationRepository.save(
                     Reservation.of(
-                            command.name(),
+                            member,
                             command.date(),
                             time,
                             theme

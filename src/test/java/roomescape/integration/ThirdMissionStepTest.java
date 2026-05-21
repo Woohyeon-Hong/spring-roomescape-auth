@@ -25,12 +25,12 @@ public class ThirdMissionStepTest {
 
     @Test
     void 시간_관리_API() {
-        Map<String, String> params = new HashMap<>();
-        params.put("startAt", "10:00");
+        Map<String, String> body = new HashMap<>();
+        body.put("startAt", "10:00");
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
-                .body(params)
+                .body(body)
                 .when().post("/admin/times")
                 .then().log().all()
                 .statusCode(201);
@@ -49,16 +49,21 @@ public class ThirdMissionStepTest {
 
     @Test
     void 예약과_시간_연결() {
-        Map<String, Object> reservation = new HashMap<>();
-        reservation.put("name", "브라운");
-        reservation.put("date", "2026-05-05");
-        reservation.put("timeId", 1);
-        reservation.put("themeId", 1);
+        Map<String, Object> memberBody = new HashMap<>();
+        memberBody.put("name", "브라운");
+        memberBody.put("email", "example@gmail.com");
+        memberBody.put("rawPassword", "rawPassword");
 
-        Map<String, Object> theme = new HashMap<>();
-        theme.put("name", "우아한 테마");
-        theme.put("description", "우아한테크코스 전용 테마입니다.");
-        theme.put("thumbnailUrl", "https://example.com/image.png");
+        Map<String, Object> themeBody = new HashMap<>();
+        themeBody.put("name", "우아한 테마");
+        themeBody.put("description", "우아한테크코스 전용 테마입니다.");
+        themeBody.put("thumbnailUrl", "https://example.com/image.png");
+
+        Map<String, Object> reservationBody = new HashMap<>();
+        reservationBody.put("memberId", 1);
+        reservationBody.put("date", "2026-05-05");
+        reservationBody.put("timeId", 1);
+        reservationBody.put("themeId", 1);
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
@@ -68,14 +73,23 @@ public class ThirdMissionStepTest {
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
-                .body(theme)
+                .body(themeBody)
                 .when().post("/admin/themes")
                 .then().statusCode(201);
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
-                .body(reservation)
-                .when().post("/reservations")
+                .body(memberBody)
+                .when().post("/members")
+                .then().statusCode(204);
+
+        String token = login("example@gmail.com", "rawPassword");
+
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .header("Authorization", token)
+                .body(reservationBody)
+                .when().post("/members/me/reservations")
                 .then().log().all()
                 .statusCode(201);
 
@@ -86,58 +100,58 @@ public class ThirdMissionStepTest {
                 .body("size()", is(1));
     }
 
-    @Test
-    void 이름이_비어있으면_예약_생성_실패() {
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "");
-        params.put("date", "2026-04-29");
-        params.put("timeId", 1L);
+    private String login(String email, String password) {
+        Map<String, Object> loginBody = Map.of(
+                "email", email,
+                "password", password
+        );
 
-        RestAssured.given().log().all()
+        return "Bearer " + RestAssured.given()
                 .contentType(ContentType.JSON)
-                .body(params)
-                .when().post("/reservations")
-                .then().log().all()
-                .statusCode(400);
-    }
-
-    @Test
-    void 이름이_공백이면_예약_생성_실패() {
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", " ");
-        params.put("date", "2026-04-29");
-        params.put("timeId", 1L);
-
-        RestAssured.given().log().all()
-                .contentType(ContentType.JSON)
-                .body(params)
-                .when().post("/reservations")
-                .then().log().all()
-                .statusCode(400);
+                .body(loginBody)
+                .when().post("/auth/login")
+                .then().statusCode(200)
+                .extract()
+                .jsonPath()
+                .getString("accessToken");
     }
 
     @Test
     void 날짜가_없으면_예약_생성_실패() {
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "홍길동");
-        params.put("timeId", 1L);
+        Map<String, Object> memberBody = new HashMap<>();
+        memberBody.put("name", "브라운");
+        memberBody.put("email", "example@gmail.com");
+        memberBody.put("rawPassword", "rawPassword");
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
-                .body(params)
-                .when().post("/reservations")
+                .body(memberBody)
+                .when().post("/members")
+                .then().statusCode(204);
+
+        String token = login("example@gmail.com", "rawPassword");
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("memberId", 1L);
+        body.put("timeId", 1L);
+
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .header("Authorization", token)
+                .body(body)
+                .when().post("/members/me/reservations")
                 .then().log().all()
                 .statusCode(400);
     }
 
     @Test
     void 잘못된_시간_형식으로_시간_생성_실패() {
-        Map<String, String> params = new HashMap<>();
-        params.put("startAt", "오전 10시");
+        Map<String, String> body = new HashMap<>();
+        body.put("startAt", "오전 10시");
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
-                .body(params)
+                .body(body)
                 .when().post("/admin/times")
                 .then().log().all()
                 .statusCode(400);
@@ -145,21 +159,46 @@ public class ThirdMissionStepTest {
 
     @Test
     void 존재하지_않는_시간_ID로_예약_생성_실패() {
-        Map<String, Object> reservation = new HashMap<>();
-        reservation.put("name", "브라운");
-        reservation.put("date", "2023-08-05");
-        reservation.put("timeId", 999);
+        Map<String, Object> memberBody = new HashMap<>();
+        memberBody.put("name", "브라운");
+        memberBody.put("email", "example@gmail.com");
+        memberBody.put("rawPassword", "rawPassword");
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
-                .body(reservation)
-                .when().post("/reservations")
+                .body(memberBody)
+                .when().post("/members")
+                .then().statusCode(204);
+
+        String token = login("example@gmail.com", "rawPassword");
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("memberId", 1L);
+        body.put("date", "2023-08-05");
+        body.put("timeId", 999L);
+
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .header("Authorization", token)
+                .body(body)
+                .when().post("/members/me/reservations")
                 .then().log().all()
                 .statusCode(400);
     }
 
     @Test
     void 중복된_날짜와_시간으로_예약_생성_실패() {
+        Map<String, Object> memberBody = new HashMap<>();
+        memberBody.put("name", "브라운");
+        memberBody.put("email", "example@gmail.com");
+        memberBody.put("rawPassword", "rawPassword");
+
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(memberBody)
+                .when().post("/members")
+                .then().statusCode(204);
+
         RestAssured.given()
                 .contentType(ContentType.JSON)
                 .body("{\"startAt\": \"10:00\"}")
@@ -177,22 +216,26 @@ public class ThirdMissionStepTest {
                 .when().post("/admin/themes")
                 .then().statusCode(201);
 
+        String token = login("example@gmail.com", "rawPassword");
+
         Map<String, Object> reservation = new HashMap<>();
-        reservation.put("name", "브라운");
+        reservation.put("memberId", 1L);
         reservation.put("date", "2026-05-05");
-        reservation.put("timeId", 1);
-        reservation.put("themeId", 1);
+        reservation.put("timeId", 1L);
+        reservation.put("themeId", 1L);
 
         RestAssured.given()
                 .contentType(ContentType.JSON)
+                .header("Authorization", token)
                 .body(reservation)
-                .when().post("/reservations")
+                .when().post("/members/me/reservations")
                 .then().statusCode(201);
 
         RestAssured.given().log().all()
                 .contentType(ContentType.JSON)
+                .header("Authorization", token)
                 .body(reservation)
-                .when().post("/reservations")
+                .when().post("members/me/reservations")
                 .then().log().all()
                 .statusCode(409);
     }

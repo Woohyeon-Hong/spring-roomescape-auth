@@ -16,11 +16,11 @@ import roomescape.time.domain.ReservationTime;
 @Repository
 public class JdbcReservationTimeRepository implements ReservationTimeRepository {
 
-    private static final RowMapper<ReservationTime> reservationTimeRowMapper = (resultSet, rowNum) ->
+    private static final RowMapper<ReservationTime> RESERVATION_TIME_ROW_MAPPER = (resultSet, rowNum) ->
             new ReservationTime(
-                resultSet.getLong("id"),
-                resultSet.getTime("start_at").toLocalTime()
-    );
+                    resultSet.getLong("id"),
+                    resultSet.getTime("start_at").toLocalTime()
+            );
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -31,9 +31,9 @@ public class JdbcReservationTimeRepository implements ReservationTimeRepository 
     @Override
     public ReservationTime save(ReservationTime reservationTime) {
         String sql = """
-               INSERT INTO reservation_time (start_at)
-               VALUES (?)
-               """;
+                INSERT INTO reservation_time (start_at)
+                VALUES (?)
+                """;
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
@@ -51,14 +51,14 @@ public class JdbcReservationTimeRepository implements ReservationTimeRepository 
     @Override
     public Optional<ReservationTime> findById(Long id) {
         String sql = """
-               SELECT id, start_at
-               FROM reservation_time
-               WHERE id = ?
-               """;
+                SELECT id, start_at
+                FROM reservation_time
+                WHERE id = ?
+                """;
 
         return jdbcTemplate.query(
                 sql,
-                reservationTimeRowMapper,
+                RESERVATION_TIME_ROW_MAPPER,
                 id
         ).stream().findFirst();
     }
@@ -66,12 +66,12 @@ public class JdbcReservationTimeRepository implements ReservationTimeRepository 
     @Override
     public boolean existByStartAt(LocalTime localTime) {
         String sql = """
-            SELECT EXISTS (
-                SELECT 1
-                FROM reservation_time
-                WHERE start_at = ?
-            )
-            """;
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM reservation_time
+                    WHERE start_at = ?
+                )
+                """;
 
         Boolean exists = jdbcTemplate.queryForObject(sql, Boolean.class, localTime);
         return Boolean.TRUE.equals(exists);
@@ -84,20 +84,20 @@ public class JdbcReservationTimeRepository implements ReservationTimeRepository 
                 FROM reservation_time
                 """;
 
-        return jdbcTemplate.query(sql, reservationTimeRowMapper);
+        return jdbcTemplate.query(sql, RESERVATION_TIME_ROW_MAPPER);
     }
 
     @Override
     public List<AvailableTimeQueryResult> findAvailableTimes(Long themeId, LocalDate date) {
         String sql = """
-               SELECT t.id, t.start_at
-               FROM reservation_time t 
-               LEFT JOIN reservation r
-               ON t.id = r.time_id
-               AND r.theme_id = ?
-               AND r.reservation_date = ?
-               WHERE r.id IS NULL
-               """;
+                SELECT t.id, t.start_at
+                FROM reservation_time t 
+                LEFT JOIN reservation r
+                ON t.id = r.time_id
+                AND r.theme_id = ?
+                AND r.reservation_date = ?
+                WHERE r.id IS NULL
+                """;
 
         RowMapper<AvailableTimeQueryResult> reservationTimeMapper = (rs, rowNum) ->
                 new AvailableTimeQueryResult(
@@ -111,9 +111,9 @@ public class JdbcReservationTimeRepository implements ReservationTimeRepository 
     @Override
     public int deleteById(Long id) {
         String sql = """
-               DELETE FROM reservation_time
-               WHERE id = ?
-               """;
+                DELETE FROM reservation_time
+                WHERE id = ?
+                """;
 
         return jdbcTemplate.update(sql, id);
     }

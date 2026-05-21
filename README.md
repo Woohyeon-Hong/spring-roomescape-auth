@@ -95,7 +95,7 @@
 
 #### 구현
 
-- [ ] 구현 완료
+- [x] 구현 완료
 
 #### 메서드 / URL
 
@@ -106,10 +106,22 @@
 
 #### 구현
 
-- [ ] 구현 완료
+- [x] 구현 완료
 
 #### 메서드 / URL
 
 - PATCH /members/me/reservations/{reservationId}
     - 본인 예약 수정 API이므로, 생성 API와 동일한 맥락에서 /members/me 하위 경로를 사용한다.
+
+### 6. 예약 삭제
+
+#### 구현
+
+- [x] 구현 완료
+
+#### 메서드 / URL
+
+- DELETE /members/me/reservations/{reservationId}
+    -
+        - 본인 예약 삭제 API이므로, 수정 API와 동일한 맥락에서 /members/me 하위 경로를 사용한다.
 

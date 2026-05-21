@@ -10,6 +10,8 @@ import io.restassured.http.ContentType;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,12 +47,14 @@ public class PopularThemesTest {
         createTheme("페어 테마", "페어 전용 테마입니다.", "https://example.com/pair.png");
         createTheme("당근 테마", "당근 전용 테마입니다.", "https://example.com/carrot.png");
 
-        createReservation("브라운", LocalDate.of(2026, 4, 29), 1L, 1L);
-        createReservation("포비", LocalDate.of(2026, 4, 30), 1L, 1L);
-        createReservation("이든", LocalDate.of(2026, 4, 30), 1L, 2L);
-        createReservation("경계포함예약", LocalDate.of(2026, 4, 24), 1L, 2L);
-        createReservation("오늘예약", LocalDate.of(2026, 5, 1), 1L, 3L);
-        createReservation("범위밖예약", LocalDate.of(2026, 4, 23), 1L, 3L);
+        createMember("브라운", "example@gmail.com", "rawPassword");
+
+        createReservation(1L, LocalDate.of(2026, 4, 29), 1L, 1L);
+        createReservation(1L, LocalDate.of(2026, 4, 30), 1L, 1L);
+        createReservation(1L, LocalDate.of(2026, 4, 30), 1L, 2L);
+        createReservation(1L, LocalDate.of(2026, 4, 24), 1L, 2L);
+        createReservation(1L, LocalDate.of(2026, 5, 1), 1L, 3L);
+        createReservation(1L, LocalDate.of(2026, 4, 23), 1L, 3L);
 
         // when & then
         RestAssured.given().log().all()
@@ -69,25 +73,38 @@ public class PopularThemesTest {
 
     private void createTime(LocalTime time) {
         jdbcTemplate.update("""
-            insert into reservation_time(start_at)
-            values (?)
-        """, time
+                    insert into reservation_time(start_at)
+                    values (?)
+                """, time
         );
     }
 
     private void createTheme(String name, String description, String thumbnailUrl) {
         jdbcTemplate.update("""
-            insert into theme(name, description, thumbnail_url)
-            values (?, ?, ?)
-        """, name, description, thumbnailUrl
+                    insert into theme(name, description, thumbnail_url)
+                    values (?, ?, ?)
+                """, name, description, thumbnailUrl
         );
     }
 
-    private void createReservation(String name, LocalDate date, Long timeId, Long themeId) {
+    private void createMember(String name, String email, String rawPassword) {
+        Map<String, Object> memberBody = new HashMap<>();
+        memberBody.put("name", name);
+        memberBody.put("email", email);
+        memberBody.put("rawPassword", rawPassword);
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(memberBody)
+                .when().post("/members")
+                .then().statusCode(204);
+    }
+
+    private void createReservation(Long memberId, LocalDate date, Long timeId, Long themeId) {
         jdbcTemplate.update("""
-            insert into reservation(name, reservation_date, time_id, theme_id)
-            values (?, ?, ?, ?)
-        """, name, date,timeId, themeId
+                    insert into reservation(member_id, reservation_date, time_id, theme_id)
+                    values (?, ?, ?, ?)
+                """, memberId, date, timeId, themeId
         );
 
     }

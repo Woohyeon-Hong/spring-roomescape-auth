@@ -30,9 +30,11 @@ class MemberServiceTest {
     @Test
     void signUpTest_success() {
         // given
-        MemberCommand command = new MemberCommand("홍길동", "test@test.com", "plain-password");
+        MemberCommand command = new MemberCommand("홍길동", "test@test.com", "rawPassword");
 
-        when(memberRepository.existByEmail(command.email())).thenReturn(false);
+        when(memberRepository.existByEmail(command.email()))
+                .thenReturn(false);
+
         when(memberRepository.save(any(Member.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -40,8 +42,8 @@ class MemberServiceTest {
         Member saved = memberService.signUp(command);
 
         // then
-        assertThat(saved.passwordHash()).isNotEqualTo("plain-password");
-        assertThat(BCrypt.checkpw("plain-password", saved.passwordHash())).isTrue();
+        assertThat(saved.getPasswordHash()).isNotEqualTo("rawPassword");
+        assertThat(BCrypt.checkpw("rawPassword", saved.getPasswordHash())).isTrue();
     }
 
     @DisplayName("회원 가입 시, 기존에 이미 동일한 이메일로 회원가입이 돼 있으면 예외가 발생한다.")
@@ -53,7 +55,7 @@ class MemberServiceTest {
 
         //when & then
         assertThatThrownBy(() -> memberService.signUp(
-                new MemberCommand("이름", "example@gmail.com", "password")
+                new MemberCommand("브라운", "example@gmail.com", "rawPassword")
         )).isInstanceOf(DuplicateMemberException.class);
     }
 
@@ -65,7 +67,7 @@ class MemberServiceTest {
                 .thenReturn(Optional.of(new Member(1L, "브라운", "example@gmail.com", "passwordHash")));
 
         //when & then
-        assertThat(memberService.getByEmail("example@gmail.com").email())
+        assertThat(memberService.getByEmail("example@gmail.com").getEmail())
                 .isEqualTo("example@gmail.com");
     }
 }

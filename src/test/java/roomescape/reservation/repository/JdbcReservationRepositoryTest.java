@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import roomescape.member.domain.Member;
 import roomescape.reservation.domain.Reservation;
 import roomescape.reservation.exception.ReservationNotFoundException;
 import roomescape.theme.domain.Theme;
@@ -36,17 +37,17 @@ class JdbcReservationRepositoryTest {
 
     @Test
     @DisplayName("예약을 저장하고 반환된 객체의 ID를 확인한다.")
-    void saveTest() {
+    void saveTest_success() {
         // given
         ReservationTime time = createTime(LocalTime.of(10, 0));
         Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
+        Member member = createMember("브라운", "example@gmail.com", "password_hash");
 
         // when
         Reservation saved = reservationRepository.save(
-                new Reservation(
-                        null,
-                        "브라운",
-                        LocalDate.of(2024, 5, 1),
+                Reservation.of(
+                        member,
+                        LocalDate.of(2026, 5, 1),
                         time,
                         theme
                 )
@@ -54,286 +55,6 @@ class JdbcReservationRepositoryTest {
 
         // then
         assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getName()).isEqualTo("브라운");
-    }
-
-    @Test
-    @DisplayName("기존에 이미 동일한 예약이 있으면 예외가 발생한다.")
-    void saveTest_duplicate() {
-        // given
-        ReservationTime time = createTime(LocalTime.of(10, 0));
-        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
-
-        reservationRepository.save(
-                new Reservation(
-                        null,
-                        "브라운",
-                        LocalDate.of(2024, 5, 1),
-                        time,
-                        theme
-                )
-        );
-
-        // when & then
-        assertThatThrownBy(() -> reservationRepository.save(
-                new Reservation(
-                        null,
-                        "브라운",
-                        LocalDate.of(2024, 5, 1),
-                        time,
-                        theme
-                )
-        )).isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    @DisplayName("ID를 통해 예약을 삭제한다.")
-    void deleteByIdTest() {
-        // given
-        ReservationTime time = createTime(LocalTime.of(10, 0));
-        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
-
-        Reservation saved = saveReservation("브라운",  LocalDate.of(2024, 5, 1), time, theme);
-
-        // when
-        reservationRepository.deleteById(saved.getId());
-
-        // then
-        List<Reservation> reservations = reservationRepository.findAllByName("브라");
-        assertThat(reservations).isEmpty();
-    }
-
-    @Test
-    @DisplayName("예약 데이터를 삭제해도 시간/테마 데이터는 함께 삭제되지 않는다.")
-    void deleteByIdTest_reservation_delete_does_not_delete_time_and_theme() {
-        // given
-        ReservationTime time = createTime(LocalTime.of(10, 0));
-        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
-        Reservation saved = saveReservation("브라운", LocalDate.of(2024, 5, 1), time, theme);
-
-        // when
-        reservationRepository.deleteById(saved.getId());
-
-        // then
-        Integer reservationCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM reservation WHERE id = ?",
-                Integer.class,
-                saved.getId()
-        );
-        Integer timeCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM reservation_time WHERE id = ?",
-                Integer.class,
-                time.getId()
-        );
-        Integer themeCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM theme WHERE id = ?",
-                Integer.class,
-                theme.getId()
-        );
-
-        assertThat(reservationCount).isEqualTo(0);
-        assertThat(timeCount).isEqualTo(1);
-        assertThat(themeCount).isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("예약을 수정한다.")
-    void updateTest() {
-        // given
-        ReservationTime time = createTime(LocalTime.of(10, 0));
-        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
-
-        Reservation saved = reservationRepository.save(
-                new Reservation(
-                        null,
-                        "브라운",
-                        LocalDate.of(2024, 5, 1),
-                        time,
-                        theme
-                )
-        );
-
-        Reservation updated = saved.updateDate(LocalDate.of(2024, 5, 5));
-
-        // when
-        reservationRepository.update(updated);
-
-        // then
-        assertThat(updated.getId()).isNotNull();
-        assertThat(updated.getDate()).isEqualTo(LocalDate.of(2024, 5, 5));
-    }
-
-    @Test
-    @DisplayName("저장돼 있지 않은 예약을 수정하면 예외가 발생한다.")
-    void updateTest_do_not_exist() {
-        // given
-        ReservationTime time = createTime(LocalTime.of(10, 0));
-        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
-
-        // when & then
-        assertThatThrownBy(
-                () -> reservationRepository.update(
-                        new Reservation(
-                                999L,
-                                "브라운",
-                                LocalDate.of(2024, 5, 1),
-                                time,
-                                theme
-                        )
-                )
-        ).isInstanceOf(ReservationNotFoundException.class);
-    }
-
-    @Test
-    @DisplayName("수정하려는 예약이 이미 존재하면 예외가 발생한다.")
-    void updateTest_duplicate() {
-        // given
-        ReservationTime time = createTime(LocalTime.of(10, 0));
-        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
-
-        reservationRepository.save(
-                new Reservation(
-                        null,
-                        "브라운",
-                        LocalDate.of(2024, 5, 5),
-                        time,
-                        theme
-                )
-        );
-
-        Reservation saved = reservationRepository.save(
-                new Reservation(
-                        null,
-                        "브라운",
-                        LocalDate.of(2024, 5, 1),
-                        time,
-                        theme
-                )
-        );
-
-        Reservation updated = saved.updateDate(LocalDate.of(2024, 5, 5));
-
-        // when & then
-        assertThatThrownBy(
-                () -> reservationRepository.update(updated)
-        ).isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    @DisplayName("id에 해당하는 예외를 조회한다.")
-    void findById() {
-        // given
-        ReservationTime time = createTime(LocalTime.of(10, 0));
-        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
-
-        Reservation saved = saveReservation("브라운", LocalDate.of(2024, 5, 1), time, theme);
-
-        // when & then
-        assertThat(reservationRepository.findById(saved.getId())).isPresent();
-        assertThat(reservationRepository.findById(999L)).isEmpty();
-    }
-
-    @Test
-    @DisplayName("모든 예약 목록을 조회한다.")
-    void findAll() {
-        // given
-        ReservationTime time = createTime(LocalTime.of(10, 0));
-        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
-
-        Reservation saved1 = saveReservation("브라운", LocalDate.of(2024, 5, 1), time, theme);
-        Reservation saved2 = saveReservation("브라운", LocalDate.of(2024, 5, 2), time, theme);
-        Reservation saved3 = saveReservation("포피", LocalDate.of(2024, 5, 3), time, theme);
-
-        // when
-        List<Reservation> reservations = reservationRepository.findAll();
-
-        // then
-        assertThat(reservations).hasSize(3);
-        assertThat(reservations).containsExactly(saved1, saved2, saved3);
-    }
-
-    @Test
-    @DisplayName("이름에 해당하는 모든 예약 목록을 조회한다.")
-    void findAllByName() {
-        // given
-        ReservationTime time = createTime(LocalTime.of(10, 0));
-        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
-
-        Reservation saved1 = saveReservation("브라운", LocalDate.of(2024, 5, 1), time, theme);
-        Reservation saved2 = saveReservation("브라운", LocalDate.of(2024, 5, 2), time, theme);
-        saveReservation("포피", LocalDate.of(2024, 5, 3), time, theme);
-
-        // when
-        List<Reservation> reservations = reservationRepository.findAllByName("브라운");
-
-        // then
-        assertThat(reservations).hasSize(2);
-        assertThat(reservations).containsExactly(saved1, saved2);
-    }
-
-
-    @Test
-    @DisplayName("from과 to 사이 일정의 예약들에 대해, 상위 limit 개의 테마들을 조회한다.")
-    void findPopularThemesTest() {
-        // given
-        Theme woowaTheme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
-        Theme pairTheme = createTheme("페어", "페어 전용 테마", "https://pair.com");
-        Theme carrotTheme = createTheme("당근", "당근 전용 테마", "https://carrot.com");
-
-        ReservationTime time = createTime(LocalTime.of(10, 0));
-
-        LocalDate today = LocalDate.now(
-                Clock.fixed(
-                        Instant.parse("2026-05-06T00:00:00Z"),
-                        ZoneId.of("Asia/Seoul")
-                )
-        );
-
-        saveReservation("브라운",today.minusDays(1), time, woowaTheme);
-        saveReservation("포비",today.minusDays(2), time, woowaTheme);
-        saveReservation("제이슨",today.minusDays(3), time, woowaTheme);
-        saveReservation("이든", today.minusDays(1), time, pairTheme);
-        saveReservation("레아", today.minusDays(2), time, pairTheme);
-        saveReservation("웨지", today.minusDays(1), time, carrotTheme);
-        saveReservation("오늘예약", today, time, carrotTheme);
-        saveReservation("범위밖예약", today.minusDays(8), time, carrotTheme);
-
-        // when
-        List<PopularThemeQueryResult> popularThemes = reservationRepository.findPopularThemes(
-                LocalDate.of(2026, 4, 29),
-                LocalDate.of(2026, 5, 5),
-                2
-        );
-
-        // then
-        assertThat(popularThemes)
-                .extracting(PopularThemeQueryResult::name)
-                .containsExactly("우테코", "페어");
-    }
-
-    @DisplayName("name, date, themeId, timeId가 같고 id가 다른 예약이 있는지 조회한다.")
-    @Test
-    void existByDateAndTimeIdAndThemeIdExceptId() {
-        //given
-        ReservationTime time = createTime(LocalTime.of(10, 0));
-        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
-
-        Reservation saved = saveReservation("브라운", LocalDate.of(2024, 5, 1), time, theme);
-
-        //when & then
-        assertThat(reservationRepository.existByDateAndTimeIdAndThemeIdExceptId(
-                saved.getDate(),
-                saved.getTime().getId(),
-                saved.getTheme().getId(),
-                saved.getId() + 1
-        )).isTrue();
-
-        assertThat(reservationRepository.existByDateAndTimeIdAndThemeIdExceptId(
-                saved.getDate(),
-                saved.getTime().getId(),
-                saved.getTheme().getId(),
-                saved.getId()
-        )).isFalse();
     }
 
     private ReservationTime createTime(LocalTime time) {
@@ -366,9 +87,343 @@ class JdbcReservationRepositoryTest {
         return new Theme(themeId, name, description, thumbnailUrl);
     }
 
-    private Reservation saveReservation(String name, LocalDate date, ReservationTime time, Theme theme) {
-        return reservationRepository.save(
-                new Reservation(null, name, date, time, theme)
+    private Member createMember(String name, String email, String passwordHash) {
+        jdbcTemplate.update(
+                "INSERT INTO member (name, email, password_hash) VALUES (?, ?, ?)",
+                name, email, passwordHash
         );
+
+        long memberId = jdbcTemplate.queryForObject(
+                "SELECT id FROM member WHERE email = ?",
+                Long.class,
+                email
+        );
+
+        return new Member(memberId, name, email, passwordHash);
+    }
+
+    @Test
+    @DisplayName("기존에 이미 동일한 예약이 있으면 예외가 발생한다.")
+    void saveTest_duplicate() {
+        // given
+        ReservationTime time = createTime(LocalTime.of(10, 0));
+        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
+        Member member = createMember("브라운", "example@gmail.com", "password_hash");
+
+        reservationRepository.save(
+                Reservation.of(
+                        member,
+                        LocalDate.of(2026, 5, 1),
+                        time,
+                        theme
+                )
+        );
+
+        // when & then
+        assertThatThrownBy(
+                () -> reservationRepository.save(
+                        Reservation.of(
+                                member,
+                                LocalDate.of(2026, 5, 1),
+                                time,
+                                theme
+                        )
+                )
+        ).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("이름에 해당하는 모든 예약 목록을 조회한다.")
+    void findAllByNameTest() {
+        // given
+        ReservationTime time = createTime(LocalTime.of(10, 0));
+        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
+
+        Member brown = createMember("브라운", "brown@gmail.com", "fdjfkeiejf");
+        Member pobi = createMember("포비", "pobi@gmail.com", "ejejfidjfei");
+
+        Reservation saved1 = createReservation(brown, LocalDate.of(2026, 5, 1), time, theme);
+        Reservation saved2 = createReservation(brown, LocalDate.of(2026, 5, 2), time, theme);
+        createReservation(pobi, LocalDate.of(2026, 5, 3), time, theme);
+
+        // when
+        List<Reservation> reservations = reservationRepository.findAllByName("브라운");
+
+        // then
+        assertThat(reservations).hasSize(2);
+        assertThat(reservations).containsExactly(saved1, saved2);
+    }
+
+    private Reservation createReservation(Member member, LocalDate date, ReservationTime time, Theme theme) {
+        return reservationRepository.save(
+                Reservation.of(member, date, time, theme)
+        );
+    }
+
+    @Test
+    @DisplayName("id에 해당하는 예외를 조회한다.")
+    void findByIdTest() {
+        // given
+        ReservationTime time = createTime(LocalTime.of(10, 0));
+        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
+        Member member = createMember("브라운", "brown@gmail.com", "fjkfeieifijefi");
+
+        Reservation saved = createReservation(member, LocalDate.of(2026, 5, 1), time, theme);
+
+        // when & then
+        assertThat(reservationRepository.findById(saved.getId())).isPresent();
+        assertThat(reservationRepository.findById(999L)).isEmpty();
+    }
+
+    @DisplayName("name, date, themeId, timeId가 같은 예약이 있는지 조회한다.")
+    @Test
+    void existByDateAndTimeIdAndThemeIdTest() {
+        //given
+        ReservationTime time = createTime(LocalTime.of(10, 0));
+        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
+        Member brown = createMember("브라운", "brown@gmail.com", "jfeifjefjefkdj");
+
+        Reservation saved =
+                createReservation(brown, LocalDate.of(2026, 5, 1), time, theme);
+
+        //when & then
+        assertThat(reservationRepository.existByDateAndTimeIdAndThemeId(
+                saved.getDate(),
+                saved.getTime().getId(),
+                saved.getTheme().getId()
+        )).isTrue();
+
+        assertThat(reservationRepository.existByDateAndTimeIdAndThemeId(
+                LocalDate.of(2026, 5, 2),
+                time.getId(),
+                theme.getId()
+        )).isFalse();
+    }
+
+    @Test
+    @DisplayName("모든 예약 목록을 조회한다.")
+    void findAllTest() {
+        // given
+        ReservationTime time = createTime(LocalTime.of(10, 0));
+        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
+        Member brown = createMember("브라운", "brown@gmail.com", "fjfiejfkdj");
+        Member pobi = createMember("포비", "pobi@gmail.com", "auiueijkdjf");
+
+        Reservation saved1 = createReservation(brown, LocalDate.of(2026, 5, 1), time, theme);
+        Reservation saved2 = createReservation(brown, LocalDate.of(2026, 5, 2), time, theme);
+        Reservation saved3 = createReservation(pobi, LocalDate.of(2026, 5, 3), time, theme);
+
+        // when
+        List<Reservation> reservations = reservationRepository.findAll();
+
+        // then
+        assertThat(reservations).hasSize(3);
+        assertThat(reservations).containsExactly(saved1, saved2, saved3);
+    }
+
+    @Test
+    @DisplayName("from과 to 사이 일정의 예약들에 대해, 상위 limit 개의 테마들을 조회한다.")
+    void findPopularThemesTest() {
+        // given
+        Theme woowaTheme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
+        Theme pairTheme = createTheme("페어", "페어 전용 테마", "https://pair.com");
+        Theme carrotTheme = createTheme("당근", "당근 전용 테마", "https://carrot.com");
+
+        ReservationTime time = createTime(LocalTime.of(10, 0));
+
+        LocalDate today = LocalDate.now(
+                Clock.fixed(
+                        Instant.parse("2026-05-06T00:00:00Z"),
+                        ZoneId.of("Asia/Seoul")
+                )
+        );
+
+        Member brown = createMember("브라운", "example1@gmail.com", "password_hash1");
+
+        createReservation(brown, today.minusDays(1), time, woowaTheme);
+        createReservation(brown, today.minusDays(2), time, woowaTheme);
+        createReservation(brown, today.minusDays(3), time, woowaTheme);
+        createReservation(brown, today.minusDays(1), time, pairTheme);
+        createReservation(brown, today.minusDays(2), time, pairTheme);
+        createReservation(brown, today.minusDays(1), time, carrotTheme);
+        createReservation(brown, today, time, carrotTheme);
+        createReservation(brown, today.minusDays(8), time, carrotTheme);
+
+        // when
+        List<PopularThemeQueryResult> popularThemes = reservationRepository.findPopularThemes(
+                LocalDate.of(2026, 4, 29),
+                LocalDate.of(2026, 5, 5),
+                2
+        );
+
+        // then
+        assertThat(popularThemes)
+                .extracting(PopularThemeQueryResult::name)
+                .containsExactly("우테코", "페어");
+    }
+
+    @DisplayName("name, date, themeId, timeId가 같고 id가 다른 예약이 있는지 조회한다.")
+    @Test
+    void existByDateAndTimeIdAndThemeIdExceptIdTest() {
+        //given
+        ReservationTime time = createTime(LocalTime.of(10, 0));
+        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
+        Member brown = createMember("브라운", "example1@gmail.com", "password_hash1");
+
+        Reservation saved =
+                createReservation(brown, LocalDate.of(2026, 5, 1), time, theme);
+
+        //when & then
+        assertThat(reservationRepository.existByDateAndTimeIdAndThemeIdExceptId(
+                saved.getDate(),
+                saved.getTime().getId(),
+                saved.getTheme().getId(),
+                999L
+        )).isTrue();
+
+        assertThat(reservationRepository.existByDateAndTimeIdAndThemeIdExceptId(
+                saved.getDate(),
+                saved.getTime().getId(),
+                saved.getTheme().getId(),
+                saved.getId()
+        )).isFalse();
+    }
+
+    @Test
+    @DisplayName("예약을 수정한다.")
+    void updateTest_success() {
+        // given
+        ReservationTime time = createTime(LocalTime.of(10, 0));
+        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
+        Member brown = createMember("브라운", "brown@gmail.com", "jfeijekfjk");
+
+        Reservation saved = reservationRepository.save(
+                Reservation.of(
+                        brown,
+                        LocalDate.of(2026, 5, 1),
+                        time,
+                        theme
+                )
+        );
+
+        Reservation updated = saved.updateDate(LocalDate.of(2026, 5, 5));
+
+        // when
+        reservationRepository.update(updated);
+
+        // then
+        assertThat(updated.getId()).isNotNull();
+        assertThat(updated.getDate()).isEqualTo(LocalDate.of(2026, 5, 5));
+    }
+
+    @Test
+    @DisplayName("저장돼 있지 않은 예약을 수정하면 예외가 발생한다.")
+    void updateTest_do_not_exist() {
+        // given
+        ReservationTime time = createTime(LocalTime.of(10, 0));
+        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
+        Member brown = createMember("브라운", "brown@gmail.com", "jeijkdjfkdjf");
+
+        // when & then
+        assertThatThrownBy(
+                () -> reservationRepository.update(
+                        new Reservation(
+                                999L,
+                                brown,
+                                LocalDate.of(2026, 5, 1),
+                                time,
+                                theme
+                        )
+                )
+        ).isInstanceOf(ReservationNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("수정하려는 예약이 이미 존재하면 예외가 발생한다.")
+    void updateTest_duplicate() {
+        // given
+        ReservationTime time = createTime(LocalTime.of(10, 0));
+        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
+        Member brown = createMember("브라운", "brown@gmail.com", "jfiejeifjk");
+
+        reservationRepository.save(
+                Reservation.of(
+                        brown,
+                        LocalDate.of(2026, 5, 5),
+                        time,
+                        theme
+                )
+        );
+
+        Reservation saved = reservationRepository.save(
+                Reservation.of(
+                        brown,
+                        LocalDate.of(2026, 5, 1),
+                        time,
+                        theme
+                )
+        );
+
+        Reservation updated = saved.updateDate(LocalDate.of(2026, 5, 5));
+
+        // when & then
+        assertThatThrownBy(
+                () -> reservationRepository.update(updated)
+        ).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("ID를 통해 예약을 삭제한다.")
+    void deleteByIdTest() {
+        // given
+        ReservationTime time = createTime(LocalTime.of(10, 0));
+        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
+        Member brown = createMember("브라운", "brown@gmail.com", "jdiejkjdk");
+
+        Reservation saved =
+                createReservation(brown, LocalDate.of(2026, 5, 1), time, theme);
+
+        // when
+        reservationRepository.deleteById(saved.getId());
+
+        // then
+        List<Reservation> reservations = reservationRepository.findAllByName("브라운");
+        assertThat(reservations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("예약 데이터를 삭제해도 시간/테마 데이터는 함께 삭제되지 않는다.")
+    void deleteByIdTest_reservation_delete_does_not_delete_time_and_theme() {
+        // given
+        ReservationTime time = createTime(LocalTime.of(10, 0));
+        Theme theme = createTheme("우테코", "우테코 전용 테마", "https://example.com");
+        Member brown = createMember("브라운", "example@gmail.com", "password_hash");
+
+        Reservation saved =
+                createReservation(brown, LocalDate.of(2026, 5, 1), time, theme);
+
+        // when
+        reservationRepository.deleteById(saved.getId());
+
+        // then
+        Integer reservationCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM reservation WHERE id = ?",
+                Integer.class,
+                saved.getId()
+        );
+        Integer timeCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM reservation_time WHERE id = ?",
+                Integer.class,
+                time.getId()
+        );
+        Integer themeCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM theme WHERE id = ?",
+                Integer.class,
+                theme.getId()
+        );
+
+        assertThat(reservationCount).isEqualTo(0);
+        assertThat(timeCount).isEqualTo(1);
+        assertThat(themeCount).isEqualTo(1);
     }
 }

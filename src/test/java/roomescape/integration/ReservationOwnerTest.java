@@ -1,12 +1,9 @@
 package roomescape.integration;
 
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
-
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
-import java.sql.Date;
+import io.restassured.path.json.JsonPath;
 import java.sql.Time;
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,12 +27,7 @@ public class ReservationOwnerTest {
     @BeforeEach
     void setup() {
         databaseHelper.clear();
-    }
 
-    @DisplayName("이름을 header로 넘겨 자신의 예약을 삭제한다.")
-    @Test
-    void deleteMyReservationById_success() {
-        //given
         jdbcTemplate.update(
                 "INSERT INTO reservation_time (start_at) VALUES (?)",
                 Time.valueOf(LocalTime.of(10, 0))
@@ -46,360 +38,212 @@ public class ReservationOwnerTest {
                 "테마", "설명", "thumbnailUrl"
         );
 
-        jdbcTemplate.update(
-                "INSERT INTO reservation (name, reservation_date, time_id,  theme_id) VALUES (?, ?, ?, ?)",
-                "brown", Date.valueOf(LocalDate.of(2026, 5, 5)), 1L, 1L
+        Map<String, Object> memberCreateBody = Map.of(
+                "name", "브라운",
+                "email", "brown@gmail.com",
+                "rawPassword", "rawPassword"
         );
 
-        //when & then
-        RestAssured.given().log().all()
-                .header("Authorization", "brown")
+        RestAssured.given()
                 .contentType(ContentType.JSON)
-                .when().delete("/reservations/1")
-                .then().log().all()
-                .statusCode(204);
-
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT EXISTS(SELECT 1 FROM reservation WHERE id = ?)",
-                Boolean.class,
-                1L)).isFalse();
-
+                .body(memberCreateBody)
+                .when().post("/members")
+                .then().statusCode(204);
     }
 
-    @DisplayName("예약 삭제 시, id에 해당하는 예약이 없으면 예외가 발생한다.")
+    @DisplayName("인증한 사용자만 예약을 생성하고 201을 반환한다.")
     @Test
-    void deleteMyReservationById_id_x() {
-        RestAssured.given().log().all()
-                .header("Authorization", "brown")
-                .contentType(ContentType.JSON)
-                .when().delete("/reservations/1")
-                .then().log().all()
-                .statusCode(404);
-    }
-
-    @DisplayName("예약 삭제 시, 자신의 예약이 아니면 예외가 발생한다.")
-    @Test
-    void deleteMyReservationById__not_owner() {
+    void createReservationTest_success() {
         //given
-        jdbcTemplate.update(
-                "INSERT INTO reservation_time (start_at) VALUES (?)",
-                Time.valueOf(LocalTime.of(10, 0))
-        );
+        String token = login("brown@gmail.com", "rawPassword");
 
-        jdbcTemplate.update(
-                "INSERT INTO theme (name, description, thumbnail_url) VALUES (?, ?, ?)",
-                "테마", "설명", "thumbnailUrl"
-        );
-
-        jdbcTemplate.update(
-                "INSERT INTO reservation (name, reservation_date, time_id,  theme_id) VALUES (?, ?, ?, ?)",
-                "brown", Date.valueOf(LocalDate.of(2026, 5, 5)), 1L, 1L
-                );
-
+        Map<String, Object> body = new HashMap<>();
+        body.put("memberId", 1L);
+        body.put("date", "2026-05-01");
+        body.put("timeId", 1L);
+        body.put("themeId", 1L);
 
         //when & then
-        RestAssured.given().log().all()
-                .header("Authorization", "pobi")
+        RestAssured.given()
                 .contentType(ContentType.JSON)
-                .when().delete("/reservations/1")
-                .then().log().all()
-                .statusCode(403);
+                .header("Authorization", token)
+                .body(body)
+                .when().post("/members/me/reservations")
+                .then().statusCode(201);
     }
 
-    @DisplayName("예약 삭제 시, 이미 지난 시간이면 예외가 발생한다.")
+    private String login(String email, String password) {
+        Map<String, Object> loginBody = Map.of(
+                "email", email,
+                "password", password
+        );
+
+        JsonPath jsonPath = RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(loginBody)
+                .when().post("/auth/login")
+                .then().statusCode(200)
+                .extract()
+                .jsonPath();
+
+        return jsonPath.getString("tokenType") + " " + jsonPath.getString("accessToken");
+    }
+
+    @DisplayName("인증받지 않은 사용자가 예약을 생성하면 401을 반환한다.")
     @Test
-    void deleteMyReservationById_expired() {
+    void createReservationTest_fail() {
         //given
-        jdbcTemplate.update(
-                "INSERT INTO reservation_time (start_at) VALUES (?)",
-                Time.valueOf(LocalTime.of(10, 0))
-        );
-
-        jdbcTemplate.update(
-                "INSERT INTO theme (name, description, thumbnail_url) VALUES (?, ?, ?)",
-                "테마", "설명", "thumbnailUrl"
-        );
-
-        jdbcTemplate.update(
-                "INSERT INTO reservation (name, reservation_date, time_id,  theme_id) VALUES (?, ?, ?, ?)",
-                "brown", Date.valueOf(LocalDate.of(2026, 4, 5)), 1L, 1L
-        );
-
+        Map<String, Object> body = new HashMap<>();
+        body.put("memberId", 1L);
+        body.put("date", "2026-05-01");
+        body.put("timeId", 1L);
+        body.put("themeId", 1L);
 
         //when & then
-        RestAssured.given().log().all()
-                .header("Authorization", "brown")
+        RestAssured.given()
                 .contentType(ContentType.JSON)
-                .when().delete("/reservations/1")
-                .then().log().all()
-                .statusCode(422);
+                .body(body)
+                .when().post("/members/me/reservations")
+                .then().statusCode(401);
     }
 
-    @DisplayName("이름을 header로 넘겨서, 예약을 변경한다.")
+    @DisplayName("본인의 예약을 수정하면 204를 반환한다.")
     @Test
-    void updateMyReservation_success() {
+    void updateMyReservationTest_success() {
         //given
-        jdbcTemplate.update(
-                "INSERT INTO reservation_time (start_at) VALUES (?)",
-                Time.valueOf(LocalTime.of(10, 0))
-        );
+        String token = login("brown@gmail.com", "rawPassword");
 
-        jdbcTemplate.update(
-                "INSERT INTO reservation_time (start_at) VALUES (?)",
-                Time.valueOf(LocalTime.of(11, 0))
-        );
+        Map<String, Object> createReservationBody = new HashMap<>();
+        createReservationBody.put("memberId", 1L);
+        createReservationBody.put("date", "2026-05-01");
+        createReservationBody.put("timeId", 1L);
+        createReservationBody.put("themeId", 1L);
 
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .header("Authorization", token)
+                .body(createReservationBody)
+                .when().post("/members/me/reservations")
+                .then().statusCode(201);
 
-        jdbcTemplate.update(
-                "INSERT INTO theme (name, description, thumbnail_url) VALUES (?, ?, ?)",
-                "테마", "설명", "thumbnailUrl"
-        );
-
-        jdbcTemplate.update(
-                "INSERT INTO reservation (name, reservation_date, time_id,  theme_id) VALUES (?, ?, ?, ?)",
-                "brown", Date.valueOf(LocalDate.of(2026, 5, 5)), 1L, 1L
-        );
+        Map<String, Object> body = new HashMap<>();
+        body.put("date", "2026-05-02");
 
         //when & then
-        Map<String, Object> paramsWithDate = new HashMap<>();
-        paramsWithDate.put("date", "2026-05-10");
-
-        RestAssured.given().log().all()
-                .header("Authorization", "brown")
+        RestAssured.given()
                 .contentType(ContentType.JSON)
-                .body(paramsWithDate)
-                .when().patch("/reservations/1")
-                .then().log().all()
-                .statusCode(204);
-
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT reservation_date FROM reservation WHERE id = ?",
-                Date.class,
-                1L).toLocalDate()).isEqualTo(LocalDate.of(2026, 5, 10));
-
-        Map<String, Object> paramsWithTimeId = new HashMap<>();
-        paramsWithTimeId.put("timeId", 2L);
-
-        RestAssured.given().log().all()
-                .header("Authorization", "brown")
-                .contentType(ContentType.JSON)
-                .body(paramsWithTimeId)
-                .when().patch("/reservations/1")
-                .then().log().all()
-                .statusCode(204);
-
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT time_id FROM reservation WHERE id = ?",
-                Long.class,
-                1L)).isEqualTo(2L);
+                .header("Authorization", token)
+                .body(body)
+                .when().patch("/members/me/reservations/1")
+                .then().statusCode(204);
     }
 
-    @DisplayName("예약 변경 시, 변경하려는 예약이 존재하지 않으면 예외가 발생한다.")
+    @DisplayName("본인 것이 아닌 예약을 수정하면 403를 반환한다.")
     @Test
-    void updateMyReservation_id_x() {
-        Map<String, Object> params = new HashMap<>();
-        params.put("date", "2026-05-10");
-
-        RestAssured.given().log().all()
-                .header("Authorization", "brown")
-                .contentType(ContentType.JSON)
-                .body(params)
-                .when().patch("/reservations/1")
-                .then().log().all()
-                .statusCode(404);
-    }
-
-    @DisplayName("예약 변경 시, 자신의 예약이 아니면 예외가 발생한다.")
-    @Test
-    void updateMyReservation_not_owner() {
+    void updateMyReservationTest_fail() {
         //given
-        jdbcTemplate.update(
-                "INSERT INTO reservation_time (start_at) VALUES (?)",
-                Time.valueOf(LocalTime.of(10, 0))
+        Map<String, Object> memberCreateBody = Map.of(
+                "name", "포비",
+                "email", "pobi@gmail.com",
+                "rawPassword", "rawPassword"
         );
 
-        jdbcTemplate.update(
-                "INSERT INTO theme (name, description, thumbnail_url) VALUES (?, ?, ?)",
-                "테마", "설명", "thumbnailUrl"
-        );
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(memberCreateBody)
+                .when().post("/members")
+                .then().statusCode(204);
 
-        jdbcTemplate.update(
-                "INSERT INTO reservation (name, reservation_date, time_id,  theme_id) VALUES (?, ?, ?, ?)",
-                "brown", Date.valueOf(LocalDate.of(2026, 5, 5)), 1L, 1L
-        );
+        String pobiToken = login("pobi@gmail.com", "rawPassword");
+        String brownToken = login("brown@gmail.com", "rawPassword");
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("date", "2026-05-10");
+        Map<String, Object> createReservationBody = new HashMap<>();
+        createReservationBody.put("memberId", 1L);
+        createReservationBody.put("date", "2026-05-01");
+        createReservationBody.put("timeId", 1L);
+        createReservationBody.put("themeId", 1L);
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .header("Authorization", brownToken)
+                .body(createReservationBody)
+                .when().post("/members/me/reservations")
+                .then().statusCode(201);
 
         //when & then
-        RestAssured.given().log().all()
-                .header("Authorization", "pobi")
+        RestAssured.given()
                 .contentType(ContentType.JSON)
-                .body(params)
-                .when().patch("/reservations/1")
-                .then().log().all()
-                .statusCode(403);
+                .header("Authorization", pobiToken)
+                .body(createReservationBody)
+                .when().patch("/members/me/reservations/1")
+                .then().statusCode(403);
     }
 
-    @DisplayName("예약 변경 시, name 헤더가 없으면 예외가 발생한다.")
+    @DisplayName("본인의 예약을 삭제하면 204를 반환한다.")
     @Test
-    void updateMyReservation_without_authorization() {
+    void deleteMyReservationTest_success() {
         //given
-        jdbcTemplate.update(
-                "INSERT INTO reservation_time (start_at) VALUES (?)",
-                Time.valueOf(LocalTime.of(10, 0))
-        );
+        String token = login("brown@gmail.com", "rawPassword");
 
-        jdbcTemplate.update(
-                "INSERT INTO theme (name, description, thumbnail_url) VALUES (?, ?, ?)",
-                "테마", "설명", "thumbnailUrl"
-        );
+        Map<String, Object> createReservationBody = new HashMap<>();
+        createReservationBody.put("memberId", 1L);
+        createReservationBody.put("date", "2026-05-01");
+        createReservationBody.put("timeId", 1L);
+        createReservationBody.put("themeId", 1L);
 
-        jdbcTemplate.update(
-                "INSERT INTO reservation (name, reservation_date, time_id,  theme_id) VALUES (?, ?, ?, ?)",
-                "brown", Date.valueOf(LocalDate.of(2026, 5, 5)), 1L, 1L
-        );
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("date", "2026-05-10");
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .header("Authorization", token)
+                .body(createReservationBody)
+                .when().post("/members/me/reservations")
+                .then().statusCode(201);
 
         //when & then
-        RestAssured.given().log().all()
+        RestAssured.given()
                 .contentType(ContentType.JSON)
-                .body(params)
-                .when().patch("/reservations/1")
-                .then().log().all()
-                .statusCode(400);
+                .header("Authorization", token)
+                .when().delete("/members/me/reservations/1")
+                .then().statusCode(204);
     }
 
-    @DisplayName("예약 변경 시, 변경 대상이 이미 지난 예약이면 예외가 발생한다.")
+    @DisplayName("본인 것이 아닌 예약을 삭제하면 403를 반환한다.")
     @Test
-    void updateMyReservation_expired_original() {
+    void deleteMyReservationTest_fail() {
         //given
-        jdbcTemplate.update(
-                "INSERT INTO reservation_time (start_at) VALUES (?)",
-                Time.valueOf(LocalTime.of(10, 0))
+        Map<String, Object> memberCreateBody = Map.of(
+                "name", "포비",
+                "email", "pobi@gmail.com",
+                "rawPassword", "rawPassword"
         );
 
-        jdbcTemplate.update(
-                "INSERT INTO theme (name, description, thumbnail_url) VALUES (?, ?, ?)",
-                "테마", "설명", "thumbnailUrl"
-        );
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(memberCreateBody)
+                .when().post("/members")
+                .then().statusCode(204);
 
-        jdbcTemplate.update(
-                "INSERT INTO reservation (name, reservation_date, time_id,  theme_id) VALUES (?, ?, ?, ?)",
-                "brown", Date.valueOf(LocalDate.of(2026, 4, 5)), 1L, 1L
-        );
+        String pobiToken = login("pobi@gmail.com", "rawPassword");
+        String brownToken = login("brown@gmail.com", "rawPassword");
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("date", "2026-05-10");
+        Map<String, Object> createReservationBody = new HashMap<>();
+        createReservationBody.put("memberId", 1L);
+        createReservationBody.put("date", "2026-05-01");
+        createReservationBody.put("timeId", 1L);
+        createReservationBody.put("themeId", 1L);
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .header("Authorization", brownToken)
+                .body(createReservationBody)
+                .when().post("/members/me/reservations")
+                .then().statusCode(201);
 
         //when & then
-        RestAssured.given().log().all()
-                .header("Authorization", "brown")
+        RestAssured.given()
                 .contentType(ContentType.JSON)
-                .body(params)
-                .when().patch("/reservations/1")
-                .then().log().all()
-                .statusCode(422);
-    }
-
-    @DisplayName("예약 변경 시, 변경하려는 시간이 이미 지났으면 예외가 발생한다.")
-    @Test
-    void updateMyReservation_expired_to() {
-        //given
-        jdbcTemplate.update(
-                "INSERT INTO reservation_time (start_at) VALUES (?)",
-                Time.valueOf(LocalTime.of(10, 0))
-        );
-
-        jdbcTemplate.update(
-                "INSERT INTO theme (name, description, thumbnail_url) VALUES (?, ?, ?)",
-                "테마", "설명", "thumbnailUrl"
-        );
-
-        jdbcTemplate.update(
-                "INSERT INTO reservation (name, reservation_date, time_id,  theme_id) VALUES (?, ?, ?, ?)",
-                "brown", Date.valueOf(LocalDate.of(2026, 5, 5)), 1L, 1L
-        );
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("date", "2026-04-10");
-
-        //when & then
-        RestAssured.given().log().all()
-                .header("Authorization", "brown")
-                .contentType(ContentType.JSON)
-                .body(params)
-                .when().patch("/reservations/1")
-                .then().log().all()
-                .statusCode(422);
-    }
-
-    @DisplayName("예약 변경 시, 날짜와 timeId가 모두 null이면 예외가 발생한다.")
-    @Test
-    void updateMyReservation__both_empty() {
-        //given
-        jdbcTemplate.update(
-                "INSERT INTO reservation_time (start_at) VALUES (?)",
-                Time.valueOf(LocalTime.of(10, 0))
-        );
-
-        jdbcTemplate.update(
-                "INSERT INTO theme (name, description, thumbnail_url) VALUES (?, ?, ?)",
-                "테마", "설명", "thumbnailUrl"
-        );
-
-        jdbcTemplate.update(
-                "INSERT INTO reservation (name, reservation_date, time_id,  theme_id) VALUES (?, ?, ?, ?)",
-                "brown", Date.valueOf(LocalDate.of(2026, 5, 5)), 1L, 1L
-        );
-
-
-        //when & then
-        RestAssured.given().log().all()
-                .header("Authorization", "brown")
-                .contentType(ContentType.JSON)
-                .body(new HashMap<>())
-                .when().patch("/reservations/1")
-                .then().log().all()
-                .statusCode(400);
-    }
-
-    @DisplayName("예약 변경 시, 변경하려는 예약이 기존의 다른 예약과 겹치면 예외가 발생한다.")
-    @Test
-    void updateMyReservation_duplicate() {
-        //given
-        jdbcTemplate.update(
-                "INSERT INTO reservation_time (start_at) VALUES (?)",
-                Time.valueOf(LocalTime.of(10, 0))
-        );
-
-        jdbcTemplate.update(
-                "INSERT INTO theme (name, description, thumbnail_url) VALUES (?, ?, ?)",
-                "테마", "설명", "thumbnailUrl"
-        );
-
-        jdbcTemplate.update(
-                "INSERT INTO reservation (name, reservation_date, time_id,  theme_id) VALUES (?, ?, ?, ?)",
-                "brown", Date.valueOf(LocalDate.of(2026, 5, 5)), 1L, 1L
-        );
-
-        jdbcTemplate.update(
-                "INSERT INTO reservation (name, reservation_date, time_id,  theme_id) VALUES (?, ?, ?, ?)",
-                "pobi", Date.valueOf(LocalDate.of(2026, 5, 6)), 1L, 1L
-        );
-
-        //when & then
-        Map<String, Object> paramsWithDate = new HashMap<>();
-        paramsWithDate.put("date", "2026-05-06");
-
-        RestAssured.given().log().all()
-                .header("Authorization", "brown")
-                .contentType(ContentType.JSON)
-                .body(paramsWithDate)
-                .when().patch("/reservations/1")
-                .then().log().all()
-                .statusCode(409);
+                .header("Authorization", pobiToken)
+                .body(createReservationBody)
+                .when().delete("/members/me/reservations/1")
+                .then().statusCode(403);
     }
 }

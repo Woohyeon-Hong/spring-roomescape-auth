@@ -66,11 +66,12 @@ class ConcurrencyTest {
         //given
         createReservationTime("10:00");
         createTheme("테마", "설명", "thumbnailUrl");
+        createMember("브라운", "example@gmail.com", "rawPassword");
 
         //when
         List<Integer> result = runConcurrentlyAndCountResults(
                 () -> reservationService.makeReservation(new ReservationCommand(
-                                "name",
+                                1L,
                                 LocalDate.of(2026, 5, 15),
                                 1L,
                                 1L
@@ -84,6 +85,83 @@ class ConcurrencyTest {
         assertThat(result.get(0)).isEqualTo(1);
         assertThat(result.get(1)).isEqualTo(99);
         assertThat(result.get(2)).isEqualTo(0);
+    }
+
+    private void createReservationTime(String startAt) {
+        Map<String, Object> reservationTime = new HashMap<>();
+        reservationTime.put("startAt", startAt);
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(reservationTime)
+                .when().post("/admin/times")
+                .then().statusCode(201);
+    }
+
+    private void createTheme(String name, String description, String thumbnailUrl) {
+        Map<String, Object> theme = new HashMap<>();
+        theme.put("name", name);
+        theme.put("description", description);
+        theme.put("thumbnailUrl", thumbnailUrl);
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(theme)
+                .when().post("/admin/themes")
+                .then().statusCode(201);
+    }
+
+    private void createMember(String name, String email, String rawPassword) {
+        Map<String, Object> memberBody = new HashMap<>();
+        memberBody.put("name", name);
+        memberBody.put("email", email);
+        memberBody.put("rawPassword", rawPassword);
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(memberBody)
+                .when().post("/members")
+                .then().statusCode(204);
+    }
+
+    private List<Integer> runConcurrentlyAndCountResults(
+            Runnable runnable,
+            int numberOfThread,
+            Class<? extends BusinessException> expectedExceptionType
+    ) throws InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThread);
+
+        CountDownLatch latch = new CountDownLatch(numberOfThread);
+
+        AtomicInteger successCount = new AtomicInteger();
+        AtomicInteger duplicateCount = new AtomicInteger();
+        AtomicInteger unexpectedErrorCount = new AtomicInteger();
+
+        for (int i = 0; i < numberOfThread; i++) {
+            executorService.submit(() -> {
+                try {
+                    runnable.run();
+                    successCount.incrementAndGet();
+                } catch (Throwable throwable) {
+                    if (expectedExceptionType.isInstance(throwable)) {
+                        duplicateCount.incrementAndGet();
+                    } else {
+                        unexpectedErrorCount.incrementAndGet();
+                    }
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+        executorService.shutdown();
+
+        return List.of(
+                successCount.get(),
+                duplicateCount.get(),
+                unexpectedErrorCount.get()
+        );
     }
 
     @DisplayName("동일한 예약 시간을 동시에 생성하면 하나만 성공하고 나머지는 중복 예외가 발생한다")
@@ -128,8 +206,10 @@ class ConcurrencyTest {
         //given
         createReservationTime("10:00");
         createTheme("테마", "설명", "thumbnailUrl");
+        createMember("브라운", "example@gmail.com", "rawPassword");
 
-        createReservation("브라운", LocalDate.of(2026, 5, 15), 1L, 1L);
+        String token = login("example@gmail.com", "rawPassword");
+        createReservation(token, 1L, LocalDate.of(2026, 5, 15), 1L, 1L);
 
         //when
         List<Integer> result = runConcurrentlyAndCountResults(
@@ -142,6 +222,41 @@ class ConcurrencyTest {
         assertThat(result.get(0)).isEqualTo(1);
         assertThat(result.get(1)).isEqualTo(99);
         assertThat(result.get(2)).isEqualTo(0);
+    }
+
+    private String login(String email, String password) {
+        Map<String, Object> loginBody = Map.of(
+                "email", email,
+                "password", password
+        );
+
+        return "Bearer " + RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(loginBody)
+                .when().post("/auth/login")
+                .then().statusCode(200)
+                .extract()
+                .jsonPath()
+                .getString("accessToken");
+    }
+
+    private long createReservation(String token, Long memberId, LocalDate date, Long timeId, Long themeId) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("memberId", memberId);
+        body.put("date", date.toString());
+        body.put("timeId", timeId);
+        body.put("themeId", themeId);
+
+        String location = RestAssured.given()
+                .contentType(ContentType.JSON)
+                .header("Authorization", token)
+                .body(body)
+                .when().post("/members/me/reservations")
+                .then().statusCode(201)
+                .extract()
+                .header("Location");
+
+        return Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
     }
 
     @DisplayName("테마 삭제 요청이 동시에 들어오면 하나만 성공하고 나머지는 예외가 발생한다")
@@ -190,9 +305,12 @@ class ConcurrencyTest {
         createReservationTime("11:00");
         createReservationTime("12:00");
         createTheme("테마", "설명", "thumbnailUrl");
+        createMember("브라운", "example@gmail.com", "rawPassword");
 
-        Long reservationId1 = createReservation("브라운", LocalDate.of(2026, 5, 15), 1L, 1L);
-        Long reservationId2 = createReservation("코니", LocalDate.of(2026, 5, 15), 2L, 1L);
+        String token = login("example@gmail.com", "rawPassword");
+
+        Long reservationId1 = createReservation(token, 1L, LocalDate.of(2026, 5, 15), 1L, 1L);
+        Long reservationId2 = createReservation(token, 1L, LocalDate.of(2026, 5, 15), 2L, 1L);
 
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         CountDownLatch readyLatch = new CountDownLatch(2);
@@ -241,88 +359,6 @@ class ConcurrencyTest {
         assertThat(successCount.get()).isEqualTo(1);
         assertThat(duplicateCount.get()).isEqualTo(1);
         assertThat(unexpectedErrorCount.get()).isEqualTo(0);
-    }
-
-    private void createReservationTime(String startAt) {
-        Map<String, Object> reservationTime = new HashMap<>();
-        reservationTime.put("startAt", startAt);
-
-        RestAssured.given()
-                .contentType(ContentType.JSON)
-                .body(reservationTime)
-                .when().post("/admin/times")
-                .then().statusCode(201);
-    }
-
-    private void createTheme(String name, String description, String thumbnailUrl) {
-        Map<String, Object> theme = new HashMap<>();
-        theme.put("name", name);
-        theme.put("description", description);
-        theme.put("thumbnailUrl", thumbnailUrl);
-
-        RestAssured.given()
-                .contentType(ContentType.JSON)
-                .body(theme)
-                .when().post("/admin/themes")
-                .then().statusCode(201);
-    }
-
-    private long createReservation(String name, LocalDate date, Long timeId, Long themeId) {
-        Map<String, Object> reservation = new HashMap<>();
-        reservation.put("name", name);
-        reservation.put("date", date.toString());
-        reservation.put("timeId", timeId);
-        reservation.put("themeId", themeId);
-
-        String location = RestAssured.given()
-                .contentType(ContentType.JSON)
-                .body(reservation)
-                .when().post("/reservations")
-                .then().statusCode(201)
-                .extract()
-                .header("Location");
-
-        return Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
-    }
-
-    private List<Integer> runConcurrentlyAndCountResults(
-            Runnable runnable,
-            int numberOfThread,
-            Class<? extends BusinessException> expectedExceptionType
-    ) throws InterruptedException {
-        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThread);
-
-        CountDownLatch latch = new CountDownLatch(numberOfThread);
-
-        AtomicInteger successCount = new AtomicInteger();
-        AtomicInteger duplicateCount = new AtomicInteger();
-        AtomicInteger unexpectedErrorCount = new AtomicInteger();
-
-        for (int i = 0; i < numberOfThread; i++) {
-            executorService.submit(() -> {
-                try {
-                    runnable.run();
-                    successCount.incrementAndGet();
-                } catch (Throwable throwable) {
-                    if (expectedExceptionType.isInstance(throwable)) {
-                        duplicateCount.incrementAndGet();
-                    } else {
-                        unexpectedErrorCount.incrementAndGet();
-                    }
-                } finally {
-                    latch.countDown();
-                }
-            });
-        }
-
-        latch.await();
-        executorService.shutdown();
-
-        return List.of(
-                successCount.get(),
-                duplicateCount.get(),
-                unexpectedErrorCount.get()
-        );
     }
 
     @DisplayName("동일한 이메일의 회원을 동시에 가입하면 하나만 성공하고 나머지는 중복 예외가 발생한다")
